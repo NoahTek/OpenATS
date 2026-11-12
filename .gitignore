@@ -4,3 +4,4 @@ playwright-report/
 playwright/.cache/
 # Test coverage reports
 coverage/
+storage/

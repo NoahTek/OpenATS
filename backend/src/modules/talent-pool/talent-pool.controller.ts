@@ -5,6 +5,7 @@ import { cleanCvText } from "../candidate/cv-text/clean";
 import { splitSections } from "../candidate/cv-text/sections";
 import { extractContacts } from "../candidate/cv-text/contacts";
 import { extractPdfText } from "../candidate/cv-text/extract-pdf";
+import { detectFileType } from "../candidate/cv-text/detect";
 import { resumeUploadService } from "../upload/resume-upload.service";
 import { r2Service } from "../../shared/services/r2.service";
 import logger from "../../utils/logger";
@@ -15,7 +16,18 @@ const createProfileSchema = z.object({
   lastName: z.string().trim().min(1, "Last name is required").max(100),
   email: z.string().trim().email("Invalid email address").max(255),
   phone: z.string().max(50).optional().nullable(),
-  linkedinUrl: z.string().url("Invalid LinkedIn URL").max(500).optional().nullable(),
+  linkedinUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .transform((val) => {
+      if (!val) return null;
+      if (!/^https?:\/\//i.test(val)) return `https://${val}`;
+      return val;
+    })
+    .pipe(z.string().url("Invalid LinkedIn URL").nullable())
+    .optional()
+    .nullable(),
   source: z.string().max(100).optional().nullable(),
   notes: z.string().optional().nullable(),
   resumeUploadId: z.string().uuid().optional().nullable(),
@@ -203,6 +215,12 @@ function inferCandidateName(text: string, filename?: string): { firstName: strin
         lastName: parts.slice(1).join(" "),
       };
     }
+    if (parts.length === 1 && parts[0] && !parts[0].includes("@")) {
+      return {
+        firstName: parts[0],
+        lastName: "",
+      };
+    }
   }
 
   return { firstName: "", lastName: "" };
@@ -215,10 +233,17 @@ export const parseResumeForTalentPool = async (req: Request, res: Response) => {
       return;
     }
 
-    if (req.file.mimetype !== "application/pdf") {
+    const isPdf =
+      req.file.mimetype === "application/pdf" ||
+      req.file.originalname.toLowerCase().endsWith(".pdf") ||
+      detectFileType(req.file.buffer) === "pdf";
+
+    if (!isPdf) {
       res.status(400).json({ error: "Only PDF files are supported" });
       return;
     }
+
+    req.file.mimetype = "application/pdf";
 
     // 1. Upload to storage and create uploadId
     const key = await r2Service.uploadResume(req.file);

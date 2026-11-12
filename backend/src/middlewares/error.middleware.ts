@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
+import multer from "multer";
 import logger from "../utils/logger";
 
 export const errorMiddleware = (
@@ -10,6 +11,12 @@ export const errorMiddleware = (
 ) => {
   if (res.headersSent) {
     next(err);
+    return;
+  }
+
+  if (err instanceof multer.MulterError) {
+    logger.warn(`[Error] ${req.method} ${req.path}: multer error ${err.code} ${err.message}`);
+    res.status(400).json({ error: err.message });
     return;
   }
 
