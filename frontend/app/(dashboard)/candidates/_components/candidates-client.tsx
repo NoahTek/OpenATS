@@ -10,6 +10,7 @@ import {
 } from "@/hooks/queries/use-candidates";
 import { toast } from "sonner";
 import { useJobs } from "@/hooks/queries/use-jobs";
+import { useClients } from "@/hooks/queries/use-clients";
 import type { Candidate } from "@/types";
 import { CandidateFilters } from "./candidate-filters";
 import {
@@ -91,6 +92,7 @@ export default function CandidatesPageClient() {
 
   // ── Data ───────────────────────────────────────────────────
   const { data: candidatesData, isLoading } = useCandidates(selectedJobId, {
+    clientId: filters.clientId,
     search: debouncedSearch || undefined,
     status: selectedStatus === "all" ? undefined : selectedStatus,
     sort: filters.sort === "score" ? "score" : undefined,
@@ -102,10 +104,12 @@ export default function CandidatesPageClient() {
     limit: PAGE_LIMIT,
   }, { enabled: hydrated });
   const { data: jobsData } = useJobs();
+  const { data: clientsData } = useClients();
 
   const candidates = candidatesData?.data ?? [];
   const pagination = candidatesData?.pagination;
   const jobs = jobsData?.data ?? [];
+  const clients = clientsData?.data ?? [];
 
   // ── Delete ─────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null);
@@ -179,8 +183,8 @@ export default function CandidatesPageClient() {
 
   const selectionScopeKey = useMemo(
     () =>
-      `${selectedJobId ?? "all"}|${selectedStatus}|${debouncedSearch}|${filters.sort}|${scoreFilter ?? ""}|${filters.flag}|${onlyFullyScored}|${filters.minExperience ?? ""}`,
-    [debouncedSearch, selectedJobId, selectedStatus, filters.sort, scoreFilter, filters.flag, onlyFullyScored, filters.minExperience],
+      `${filters.clientId ?? "all"}|${selectedJobId ?? "all"}|${selectedStatus}|${debouncedSearch}|${filters.sort}|${scoreFilter ?? ""}|${filters.flag}|${onlyFullyScored}|${filters.minExperience ?? ""}`,
+    [filters.clientId, debouncedSearch, selectedJobId, selectedStatus, filters.sort, scoreFilter, filters.flag, onlyFullyScored, filters.minExperience],
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -231,6 +235,7 @@ export default function CandidatesPageClient() {
           search={search}
           onSearchChange={handleSearchChange}
           jobs={jobs}
+          clients={clients}
           value={filters}
           onChange={setFilters}
           hideScoreFilters={isInterviewer}

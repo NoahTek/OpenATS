@@ -64,6 +64,18 @@ export function CandidateTableRow({
           </p>
         )}
       </TableCell>
+      <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-medium">
+        {candidate.clientName ? (
+          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800 dark:bg-neutral-800 dark:text-neutral-200">
+            {candidate.clientName}
+          </span>
+        ) : (
+          <span className="text-slate-400">—</span>
+        )}
+      </TableCell>
+      <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
+        <span className="leading-tight">{candidate.jobTitle ?? "—"}</span>
+      </TableCell>
       <TableCell className="h-12 px-6 py-0">
         {candidate.status === "rejected" ? (
           <Badge className="bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border-none shadow-none font-medium px-2 py-0.5 rounded-full text-[13px]">
@@ -76,16 +88,6 @@ export function CandidateTableRow({
         ) : (
           <span className="text-slate-500">—</span>
         )}
-      </TableCell>
-      <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
-        <div>
-          <div className="leading-tight">{candidate.jobTitle ?? "—"}</div>
-          {candidate.clientName && (
-            <div className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">
-              {candidate.clientName}
-            </div>
-          )}
-        </div>
       </TableCell>
       <TableCell className="h-12 px-6 py-0">
         <ScoreBadge

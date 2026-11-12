@@ -1,5 +1,5 @@
 import type { CandidateFlagFilter } from "@/hooks/queries/use-candidates";
-import type { Job } from "@/types";
+import type { Client, Job } from "@/types";
 import { getStatusLabel, type CandidateStatusFilter } from "./candidate-utils";
 
 export type CandidateSort = "newest" | "score";
@@ -7,6 +7,7 @@ export type FlagChoice = CandidateFlagFilter | "any";
 
 /** Candidate list filters, except search */
 export interface CandidateFilterState {
+  clientId: number | undefined;
   jobId: number | undefined;
   status: CandidateStatusFilter;
   sort: CandidateSort;
@@ -19,6 +20,7 @@ export interface CandidateFilterState {
 }
 
 export const EMPTY_FILTERS: CandidateFilterState = {
+  clientId: undefined,
   jobId: undefined,
   status: "all",
   sort: "newest",
@@ -50,6 +52,7 @@ const STATUSES: CandidateStatusFilter[] = ["all", "active", "rejected"];
 
 /** Read filters from the URL */
 export function parseFilterState(params: URLSearchParams): CandidateFilterState {
+  const client = Number(params.get("client"));
   const job = Number(params.get("job"));
   const status = params.get("status") as CandidateStatusFilter | null;
   const flag = params.get("flag") as FlagChoice | null;
@@ -59,6 +62,7 @@ export function parseFilterState(params: URLSearchParams): CandidateFilterState 
   const years = minExperience === null || minExperience.trim() === "" ? NaN : Number(minExperience);
 
   return {
+    clientId: Number.isInteger(client) && client > 0 ? client : undefined,
     jobId: Number.isInteger(job) && job > 0 ? job : undefined,
     status: status && STATUSES.includes(status) ? status : "all",
     sort: params.get("sort") === "score" ? "score" : "newest",
@@ -72,6 +76,7 @@ export function parseFilterState(params: URLSearchParams): CandidateFilterState 
 /** Write filters to the URL, only non defaults */
 export function toFilterParams(state: CandidateFilterState): URLSearchParams {
   const params = new URLSearchParams();
+  if (state.clientId) params.set("client", String(state.clientId));
   if (state.jobId) params.set("job", String(state.jobId));
   if (state.status !== "all") params.set("status", state.status);
   if (state.sort !== "newest") params.set("sort", state.sort);
@@ -84,13 +89,23 @@ export function toFilterParams(state: CandidateFilterState): URLSearchParams {
 
 export interface FilterChip {
   /** Which filter this chip clears. */
-  key: "job" | "status" | "minScore" | "flag" | "fullyScored" | "minExperience";
+  key: "client" | "job" | "status" | "minScore" | "flag" | "fullyScored" | "minExperience";
   label: string;
 }
 
 /** One chip per active filter */
-export function activeFilterChips(state: CandidateFilterState, jobs: Pick<Job, "id" | "title">[]): FilterChip[] {
+export function activeFilterChips(
+  state: CandidateFilterState,
+  jobs: Pick<Job, "id" | "title">[],
+  clients?: Pick<Client, "id" | "name">[],
+): FilterChip[] {
   const chips: FilterChip[] = [];
+  if (state.clientId) {
+    chips.push({
+      key: "client",
+      label: clients?.find((c) => c.id === state.clientId)?.name ?? "Selected client",
+    });
+  }
   if (state.jobId) {
     chips.push({ key: "job", label: jobs.find((j) => j.id === state.jobId)?.title ?? "Selected position" });
   }
@@ -118,6 +133,8 @@ export function filtersMenuCount(state: CandidateFilterState): number {
 /** Applies the change that removing a chip stands for. */
 export function clearFilter(state: CandidateFilterState, key: FilterChip["key"]): CandidateFilterState {
   switch (key) {
+    case "client":
+      return { ...state, clientId: undefined };
     case "job":
       return { ...state, jobId: undefined };
     case "status":
@@ -133,7 +150,7 @@ export function clearFilter(state: CandidateFilterState, key: FilterChip["key"])
   }
 }
 
-const FILTER_PARAM_KEYS = ["job", "status", "sort", "minScore", "flag", "fullyScored", "minExperience"] as const;
+const FILTER_PARAM_KEYS = ["client", "job", "status", "sort", "minScore", "flag", "fullyScored", "minExperience"] as const;
 
 /** Whether the address carries any filter at all. */
 export const hasFilterParams = (params: URLSearchParams) => FILTER_PARAM_KEYS.some((key) => params.has(key));

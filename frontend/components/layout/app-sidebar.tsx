@@ -42,7 +42,7 @@ const navMainData = [
     icon: FileUserIcon,
   },
   {
-    title: "Talent Pool",
+    title: "Candidates",
     url: "/talent-pool",
     icon: UserGroupIcon,
   },

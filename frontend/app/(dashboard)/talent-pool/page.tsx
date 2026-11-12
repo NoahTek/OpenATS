@@ -46,8 +46,12 @@ import {
   CallIcon,
   Link01Icon,
   BriefcaseBusinessIcon,
+  FileUploadIcon,
+  Cancel01Icon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function TalentPoolPage() {
   const [search, setSearch] = useState("");
@@ -74,6 +78,9 @@ export default function TalentPoolPage() {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [source, setSource] = useState("");
   const [notes, setNotes] = useState("");
+  const [resumeUploadId, setResumeUploadId] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isParsingResume, setIsParsingResume] = useState(false);
 
   const [editingProfile, setEditingProfile] = useState<TalentPoolProfile | null>(null);
 
@@ -95,7 +102,51 @@ export default function TalentPoolPage() {
     setLinkedinUrl("");
     setSource("");
     setNotes("");
+    setResumeUploadId(null);
+    setUploadedFileName(null);
     setIsAddOpen(true);
+  };
+
+  const handleResumeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+
+    setIsParsingResume(true);
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      const res = await fetch("/api/proxy/talent-pool/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.error || `HTTP ${res.status}`);
+      }
+
+      const { data: parsed } = await res.json();
+      setResumeUploadId(parsed.uploadId);
+      setUploadedFileName(file.name);
+
+      if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
+      if (parsed.lastName && !lastName) setLastName(parsed.lastName);
+      if (parsed.email && !email) setEmail(parsed.email);
+      if (parsed.phone && !phone) setPhone(parsed.phone);
+      if (parsed.linkedinUrl && !linkedinUrl) setLinkedinUrl(parsed.linkedinUrl);
+
+      toast.success("Resume parsed and details auto-filled");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to parse resume");
+    } finally {
+      setIsParsingResume(false);
+      e.target.value = "";
+    }
   };
 
   const handleOpenEdit = (profile: TalentPoolProfile) => {
@@ -141,8 +192,9 @@ export default function TalentPoolPage() {
           linkedinUrl: linkedinUrl.trim() || null,
           source: source.trim() || null,
           notes: notes.trim() || null,
+          resumeUploadId: resumeUploadId || null,
         });
-        toast.success("Candidate added to talent pool");
+        toast.success("Candidate added successfully");
       }
       setIsAddOpen(false);
     } catch (err: unknown) {
@@ -197,15 +249,15 @@ export default function TalentPoolPage() {
           <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-slate-300 py-6 dark:border-neutral-700">
             <div className="min-w-0">
               <h1 className="text-2xl font-medium leading-none text-slate-900 dark:text-neutral-100">
-                Central Talent Pool
+                Candidates
               </h1>
               <p className="mt-2 text-sm text-slate-600 dark:text-neutral-400">
-                Source candidates centrally and submit them across multiple client jobs.
+                Manage your agency&apos;s candidate bench, parse resumes with auto-fill, and submit candidates across client jobs.
               </p>
             </div>
             <Button onClick={handleOpenAdd} className="gap-2">
               <HugeiconsIcon icon={Add01Icon} className="size-4" />
-              Source Candidate
+              Add Candidate
             </Button>
           </header>
 
@@ -234,18 +286,18 @@ export default function TalentPoolPage() {
       <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-8">
         <div className="max-w-7xl pb-16">
           {isLoading ? (
-            <p className="text-sm text-slate-500">Searching talent pool...</p>
+            <p className="text-sm text-slate-500">Loading candidates...</p>
           ) : profiles.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-300 p-12 text-center dark:border-neutral-800">
               <h3 className="text-lg font-medium text-slate-900 dark:text-neutral-100">
-                No candidates found in talent pool
+                No candidates found
               </h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
-                {search ? "Try adjusting your search query." : "Source your first candidate into the agency pool."}
+                {search ? "Try adjusting your search query." : "Add your first candidate to the agency bench."}
               </p>
               <Button onClick={handleOpenAdd} className="mt-4 gap-2">
                 <HugeiconsIcon icon={Add01Icon} className="size-4" />
-                Source Candidate
+                Add Candidate
               </Button>
             </div>
           ) : (
@@ -347,21 +399,83 @@ export default function TalentPoolPage() {
         </div>
       </div>
 
-      {/* Source Candidate Modal */}
+      {/* Source / Add Candidate Modal */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingProfile ? "Edit Candidate Profile" : "Source Candidate into Talent Pool"}
+              {editingProfile ? "Edit Candidate Profile" : "Add Candidate"}
             </DialogTitle>
             <DialogDescription>
               {editingProfile
                 ? "Update candidate profile details, contact information, and recruiter notes."
-                : "Add candidate details to your agency&apos;s central bench. You can submit them to client jobs anytime."}
+                : "Upload a PDF resume to instantly auto-fill details, or enter them manually."}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSaveProfile} className="space-y-4 py-2">
+            {!editingProfile && (
+              <div className="rounded-lg border border-dashed border-slate-300 dark:border-neutral-700 p-3 bg-slate-50/50 dark:bg-neutral-900/50">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-700 dark:text-neutral-300 flex items-center gap-1.5">
+                    <HugeiconsIcon icon={FileUploadIcon} className="size-4 text-theme" />
+                    Resume / CV (PDF)
+                  </label>
+                  {uploadedFileName && (
+                    <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <HugeiconsIcon icon={Tick02Icon} className="size-3" />
+                      Auto-filled from CV
+                    </span>
+                  )}
+                </div>
+
+                {isParsingResume ? (
+                  <div className="mt-2 flex items-center justify-center gap-2 py-3 text-xs text-slate-600 dark:text-neutral-400">
+                    <Spinner className="size-4 animate-spin text-theme" />
+                    <span>Parsing resume & extracting contact details...</span>
+                  </div>
+                ) : uploadedFileName ? (
+                  <div className="mt-2 flex items-center justify-between rounded-md bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <HugeiconsIcon icon={FileUploadIcon} className="size-4 text-slate-500 shrink-0" />
+                      <span className="truncate font-medium text-slate-800 dark:text-neutral-200">
+                        {uploadedFileName}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResumeUploadId(null);
+                        setUploadedFileName(null);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300 ml-2"
+                      title="Remove attached resume"
+                    >
+                      <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-800/80 p-3 text-center hover:bg-slate-50 dark:hover:bg-neutral-800 transition">
+                      <HugeiconsIcon icon={FileUploadIcon} className="size-5 text-slate-400 mb-1" />
+                      <span className="text-xs font-medium text-slate-700 dark:text-neutral-300">
+                        Upload PDF resume to auto-fill details
+                      </span>
+                      <span className="text-[11px] text-slate-400 mt-0.5">
+                        Extracts name, email, phone & LinkedIn automatically
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        className="hidden"
+                        onChange={handleResumeFileSelect}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">

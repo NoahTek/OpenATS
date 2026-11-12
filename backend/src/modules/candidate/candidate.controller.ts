@@ -244,8 +244,11 @@ export const getCandidates = async (req: Request, res: Response) => {
     // parts scored" could work out scores they are not meant to see yet. They get the flag filter only.
     const scoreFiltersAllowed = req.user.role !== "interviewer";
     const flagParam = req.query.flag?.toString();
+    const clientIdParam = req.query.clientId?.toString();
+    const clientId = clientIdParam ? parseInt(clientIdParam, 10) : undefined;
 
     const filters = {
+      clientId: clientId && !isNaN(clientId) ? clientId : undefined,
       minScore: scoreFiltersAllowed ? parseMinScore(req.query.minScore) : undefined,
       flag: (CANDIDATE_FLAG_FILTERS as readonly string[]).includes(flagParam ?? "")
         ? (flagParam as CandidateFlagFilter)

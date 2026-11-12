@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowDown01Icon,
   Briefcase01Icon,
+  Building02Icon,
   Cancel01Icon,
   FilterHorizontalIcon,
   Search01Icon,
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Job } from "@/types";
+import type { Job, Client } from "@/types";
 import { getStatusLabel, type CandidateStatusFilter } from "../_lib/candidate-utils";
 import {
   FLAG_LABELS,
@@ -47,6 +48,7 @@ interface CandidateFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
   jobs: Job[];
+  clients?: Client[];
   value: CandidateFilterState;
   onChange: (next: CandidateFilterState) => void;
   /** Interviewers can't filter by score */
@@ -66,6 +68,72 @@ const triggerCls =
 
 const barButtonCls = "h-8 gap-2 px-3 text-sm";
 
+/** Searchable client list */
+function ClientPicker({
+  clients,
+  clientId,
+  onSelect,
+}: {
+  clients: Client[];
+  clientId: number | undefined;
+  onSelect: (clientId: number | undefined) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedClient = clients.find((c) => c.id === clientId);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="cancel"
+            aria-label="Choose a client"
+            className={`${barButtonCls} ${clientId ? "border-theme bg-theme/10" : ""}`}
+          />
+        }
+      >
+        <HugeiconsIcon icon={Building02Icon} className="size-4" strokeWidth={1.75} />
+        <span className="max-w-[120px] truncate">{selectedClient ? selectedClient.name : "Client"}</span>
+        <HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5 opacity-60" strokeWidth={2} />
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search clients..." />
+          <CommandList>
+            <CommandEmpty>No clients found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="All clients"
+                data-checked={clientId === undefined}
+                onSelect={() => {
+                  onSelect(undefined);
+                  setOpen(false);
+                }}
+              >
+                All clients
+              </CommandItem>
+              {clients.map((client) => (
+                <CommandItem
+                  key={client.id}
+                  value={`${client.name} ${client.id}`}
+                  data-checked={client.id === clientId}
+                  onSelect={() => {
+                    onSelect(client.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="truncate">{client.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /** Searchable position list */
 function PositionPicker({
   jobs,
@@ -77,6 +145,7 @@ function PositionPicker({
   onSelect: (jobId: number | undefined) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const selectedJob = jobs.find((j) => j.id === jobId);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -91,7 +160,7 @@ function PositionPicker({
         }
       >
         <HugeiconsIcon icon={Briefcase01Icon} className="size-4" strokeWidth={1.75} />
-        Position
+        <span className="max-w-[120px] truncate">{selectedJob ? selectedJob.title : "Position"}</span>
         <HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5 opacity-60" strokeWidth={2} />
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
@@ -297,12 +366,17 @@ export function CandidateFilters({
   search,
   onSearchChange,
   jobs,
+  clients = [],
   value,
   onChange,
   hideScoreFilters,
   onClear,
 }: CandidateFiltersProps) {
-  const chips = activeFilterChips(value, jobs).filter(
+  const filteredJobs = value.clientId
+    ? jobs.filter((j) => j.clientId === value.clientId)
+    : jobs;
+
+  const chips = activeFilterChips(value, jobs, clients).filter(
     (chip) => !(hideScoreFilters && (chip.key === "minScore" || chip.key === "fullyScored")),
   );
 
@@ -322,7 +396,29 @@ export function CandidateFilters({
           />
         </div>
 
-        <PositionPicker jobs={jobs} jobId={value.jobId} onSelect={(jobId) => onChange({ ...value, jobId })} />
+        {clients.length > 0 && (
+          <ClientPicker
+            clients={clients}
+            clientId={value.clientId}
+            onSelect={(clientId) => {
+              const keepJob =
+                clientId === undefined ||
+                (value.jobId !== undefined &&
+                  jobs.find((j) => j.id === value.jobId)?.clientId === clientId);
+              onChange({
+                ...value,
+                clientId,
+                jobId: keepJob ? value.jobId : undefined,
+              });
+            }}
+          />
+        )}
+
+        <PositionPicker
+          jobs={filteredJobs}
+          jobId={value.jobId}
+          onSelect={(jobId) => onChange({ ...value, jobId })}
+        />
         <FiltersMenu value={value} onChange={onChange} hideScoreFilters={hideScoreFilters} />
 
         <Select value={value.sort} onValueChange={(v) => onChange({ ...value, sort: v as CandidateSort })}>

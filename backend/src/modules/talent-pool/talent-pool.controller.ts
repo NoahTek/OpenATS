@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { talentPoolService } from "./talent-pool.service";
+import { cleanCvText } from "../candidate/cv-text/clean";
+import { splitSections } from "../candidate/cv-text/sections";
+import { extractContacts } from "../candidate/cv-text/contacts";
+import { extractPdfText } from "../candidate/cv-text/extract-pdf";
+import { resumeUploadService } from "../upload/resume-upload.service";
+import { r2Service } from "../../shared/services/r2.service";
 import logger from "../../utils/logger";
 import { getErrorMessage } from "../../utils/error.utils";
 
@@ -164,4 +170,97 @@ export const deleteTalentPoolProfile = async (req: Request, res: Response) => {
     logger.error(`Failed to delete candidate profile: ${getErrorMessage(error)}`);
     res.status(500).json({ error: "Failed to delete candidate profile" });
   }
-};;
+};
+
+function inferCandidateName(text: string, filename?: string): { firstName: string; lastName: string } {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  for (const line of lines.slice(0, 6)) {
+    if (line.includes("@") || line.includes("http") || line.length > 50 || line.length < 3) continue;
+    const cleanLine = line.replace(/^(name|candidate name|curriculum vitae|resume)\s*[:\-]\s*/i, "").trim();
+    const words = cleanLine.split(/\s+/);
+    if (words.length >= 2 && words.length <= 4 && words.every((w) => /^[\p{Lu}][\p{L}'-]*$/u.test(w))) {
+      return {
+        firstName: words[0] ?? "",
+        lastName: words.slice(1).join(" "),
+      };
+    }
+  }
+
+  if (filename) {
+    const cleanName = filename
+      .replace(/\.pdf$/i, "")
+      .replace(/[-_]?(resume|cv|curriculum[-_]?vitae)[-_]?/gi, "")
+      .replace(/[-_]+/g, " ")
+      .trim();
+    const parts = cleanName.split(/\s+/);
+    if (parts.length >= 2) {
+      return {
+        firstName: parts[0] ?? "",
+        lastName: parts.slice(1).join(" "),
+      };
+    }
+  }
+
+  return { firstName: "", lastName: "" };
+}
+
+export const parseResumeForTalentPool = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "No PDF file uploaded" });
+      return;
+    }
+
+    if (req.file.mimetype !== "application/pdf") {
+      res.status(400).json({ error: "Only PDF files are supported" });
+      return;
+    }
+
+    // 1. Upload to storage and create uploadId
+    const key = await r2Service.uploadResume(req.file);
+    const uploadId = await resumeUploadService.create(key).catch(async (error) => {
+      await r2Service.deleteResume(key).catch(() => undefined);
+      throw error;
+    });
+
+    // 2. Extract text from PDF
+    let text = "";
+    try {
+      const extracted = await extractPdfText(req.file.buffer);
+      text = cleanCvText(extracted.text);
+    } catch (err) {
+      logger.warn(`Failed to extract text from uploaded PDF: ${getErrorMessage(err)}`);
+    }
+
+    // 3. Extract contacts and infer name
+    const sections = splitSections(text);
+    const contacts = extractContacts(text, sections);
+    const name = inferCandidateName(text, req.file.originalname);
+
+    const linkedinUrl = contacts.links.find(
+      (l) => l.includes("linkedin.com") || l.startsWith("linkedin.com"),
+    );
+
+    res.status(200).json({
+      data: {
+        uploadId,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        email: contacts.emails[0] ?? "",
+        phone: contacts.phones[0] ?? "",
+        linkedinUrl: linkedinUrl
+          ? linkedinUrl.startsWith("http")
+            ? linkedinUrl
+            : `https://${linkedinUrl}`
+          : "",
+      },
+    });
+  } catch (error) {
+    logger.error(`Failed to parse resume: ${getErrorMessage(error)}`);
+    res.status(500).json({ error: "Failed to parse resume" });
+  }
+};

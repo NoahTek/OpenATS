@@ -236,10 +236,13 @@ export function CandidatesTable({
                 Candidate Name
               </TableHead>
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
-                Stage
+                Client
               </TableHead>
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
-                Applied for
+                Position
+              </TableHead>
+              <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
+                Stage
               </TableHead>
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
                 Score
@@ -255,14 +258,14 @@ export function CandidatesTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="p-0">
+                <TableCell colSpan={8} className="p-0">
                   <ListSectionSpinner />
                 </TableCell>
               </TableRow>
             ) : candidates.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-32 text-center text-slate-400 text-sm"
                 >
                   No candidates found.

@@ -113,6 +113,7 @@ function flagCondition(flag: CandidateFlagFilter) {
 }
 
 export interface CandidateFilters {
+  clientId?: number | undefined;
   stageId?: number | undefined;
   search?: string | undefined;
   status?:
@@ -178,6 +179,11 @@ function buildCandidateWhere(
 ) {
   const conditions = [];
   if (jobId) conditions.push(eq(candidates.jobId, jobId));
+  if (filters.clientId) {
+    conditions.push(
+      sql`exists (select 1 from jobs j where j.id = ${candidates.jobId} and j.client_id = ${filters.clientId})`,
+    );
+  }
   if (filters.stageId)
     conditions.push(eq(candidates.currentStageId, filters.stageId));
   if (filters.status) conditions.push(eq(candidates.status, filters.status));

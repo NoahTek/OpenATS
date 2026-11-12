@@ -45,6 +45,7 @@ export type CandidateFlagFilter =
   | "none";
 
 export type CandidateListFilters = {
+  clientId?: number;
   stageId?: number;
   search?: string;
   status?: "active" | "rejected" | "offered" | "hired" | "withdrawn";
@@ -64,6 +65,7 @@ export type CandidateListFilters = {
 /** Query string, only set filters */
 export function candidateListParams(filters?: CandidateListFilters): URLSearchParams {
   const params = new URLSearchParams();
+  if (filters?.clientId) params.set("clientId", String(filters.clientId));
   if (filters?.stageId) params.set("stageId", String(filters.stageId));
   if (filters?.search) params.set("search", filters.search);
   if (filters?.status) params.set("status", filters.status);
