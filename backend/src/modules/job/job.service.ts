@@ -1,4 +1,4 @@
-import { eq, desc, ilike, inArray, and, sql } from "drizzle-orm";
+import { eq, desc, ilike, inArray, and, sql, getTableColumns } from "drizzle-orm";
 import { db, NewJob } from "../../db";
 import { cleanObject as clean } from "../../utils/object.utils";
 import { requestResumeDeletion } from "../../queues/resume-delete/queue";
@@ -13,6 +13,7 @@ import {
   offers,
   candidates,
   departments,
+  clients,
 } from "../../db/schema";
 
 export type JobListFilters = {
@@ -20,6 +21,7 @@ export type JobListFilters = {
   limit?: number;
   search?: string;
   status?: (typeof jobs.status.enumValues)[number];
+  clientId?: number;
   departmentId?: number;
   userId?: number;
 };
@@ -115,7 +117,17 @@ export const jobService = {
     const teamFilter = userId
       ? inArray(jobs.id, db.select({ id: jobHiringTeam.jobId }).from(jobHiringTeam).where(eq(jobHiringTeam.userId, userId)))
       : undefined;
-    const allJobs = await db.select().from(jobs).where(teamFilter).orderBy(desc(jobs.createdAt));
+    const allJobs = await db
+      .select({
+        ...getTableColumns(jobs),
+        departmentName: departments.name,
+        clientName: clients.name,
+      })
+      .from(jobs)
+      .leftJoin(departments, eq(jobs.departmentId, departments.id))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
+      .where(teamFilter)
+      .orderBy(desc(jobs.createdAt));
 
     const skillsByJobId = new Map<number, string[]>();
     if (allJobs.length > 0) {
@@ -136,12 +148,13 @@ export const jobService = {
   },
 
   async getPaginated(filters: JobListFilters = {}) {
-    const { page = 1, limit = 15, search, status, departmentId, userId } = filters;
+    const { page = 1, limit = 15, search, status, clientId, departmentId, userId } = filters;
     const offset = (page - 1) * limit;
 
     const conditions = [];
     if (search) conditions.push(ilike(jobs.title, `%${search}%`));
     if (status) conditions.push(eq(jobs.status, status));
+    if (clientId) conditions.push(eq(jobs.clientId, clientId));
     if (departmentId) conditions.push(eq(jobs.departmentId, departmentId));
     if (userId) conditions.push(
       inArray(jobs.id, db.select({ id: jobHiringTeam.jobId }).from(jobHiringTeam).where(eq(jobHiringTeam.userId, userId)))
@@ -149,7 +162,19 @@ export const jobService = {
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
     const [rows, [countRow]] = await Promise.all([
-      db.select().from(jobs).where(where).orderBy(desc(jobs.createdAt)).limit(limit).offset(offset),
+      db
+        .select({
+          ...getTableColumns(jobs),
+          departmentName: departments.name,
+          clientName: clients.name,
+        })
+        .from(jobs)
+        .leftJoin(departments, eq(jobs.departmentId, departments.id))
+        .leftJoin(clients, eq(jobs.clientId, clients.id))
+        .where(where)
+        .orderBy(desc(jobs.createdAt))
+        .limit(limit)
+        .offset(offset),
       db.select({ count: sql<number>`count(*)::int` }).from(jobs).where(where),
     ]);
 
@@ -195,7 +220,16 @@ export const jobService = {
   },
 
   async getById(id: number) {
-    const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
+    const [job] = await db
+      .select({
+        ...getTableColumns(jobs),
+        departmentName: departments.name,
+        clientName: clients.name,
+      })
+      .from(jobs)
+      .leftJoin(departments, eq(jobs.departmentId, departments.id))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
+      .where(eq(jobs.id, id));
     if (!job) return null;
 
     const skills = await db

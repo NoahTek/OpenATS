@@ -32,7 +32,7 @@ const navMainData = [
     icon: Building02Icon,
   },
   {
-    title: "Manage Jobs",
+    title: "Jobs",
     url: "/jobs",
     icon: BriefcaseBusinessIcon,
   },

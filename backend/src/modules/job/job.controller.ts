@@ -115,7 +115,7 @@ export const listPublishedCareersJobs = async (
 
 export const getAllJobs = async (req: Request, res: Response) => {
   try {
-    const { page, limit, search, status, departmentId } = req.query;
+    const { page, limit, search, status, departmentId, clientId } = req.query;
     const teamUserId = teamScope(req.user);
 
     if (page !== undefined) {
@@ -124,6 +124,7 @@ export const getAllJobs = async (req: Request, res: Response) => {
         limit: parseInt((limit as string) ?? "15") || 15,
         search: (search as string) || undefined,
         status: asEnum(status, jobs.status.enumValues),
+        clientId: clientId ? parseInt(clientId as string) : undefined,
         departmentId: departmentId ? parseInt(departmentId as string) : undefined,
         userId: teamUserId,
       });

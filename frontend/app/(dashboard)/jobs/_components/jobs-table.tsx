@@ -90,10 +90,13 @@ export function JobsTable({
                 Job Name
               </TableHead>
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
-                Job Type
+                Client
               </TableHead>
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
                 Department Name
+              </TableHead>
+              <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
+                Job Type
               </TableHead>
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
                 Created At
@@ -106,13 +109,13 @@ export function JobsTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="p-0">
+                <TableCell colSpan={7} className="p-0">
                   <ListSectionSpinner />
                 </TableCell>
               </TableRow>
             ) : jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-slate-400 text-sm">
+                <TableCell colSpan={7} className="h-32 text-center text-slate-400 text-sm">
                   No jobs found.
                 </TableCell>
               </TableRow>
@@ -121,10 +124,12 @@ export function JobsTable({
                 <JobTableRow
                   key={job.id}
                   job={job}
+                  clientName={job.clientName ?? "—"}
                   departmentName={
-                    job.departmentId
+                    job.departmentName ??
+                    (job.departmentId
                       ? (departmentNameById.get(job.departmentId) ?? `Department #${job.departmentId}`)
-                      : "—"
+                      : "—")
                   }
                   onDelete={onDelete}
                   isSelected={selection.selectedIds.has(job.id)}

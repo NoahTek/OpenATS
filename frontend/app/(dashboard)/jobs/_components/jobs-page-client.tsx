@@ -103,7 +103,7 @@ export function JobsPageClient() {
     <div className="flex flex-1 flex-col bg-white dark:bg-neutral-950">
       <div className="px-6 pt-4 pb-3 flex items-center justify-between">
         <h1 className="text-2xl font-medium text-slate-900 dark:text-neutral-100 leading-none">
-          Manage Jobs
+          Jobs
         </h1>
       </div>
 

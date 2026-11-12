@@ -26,6 +26,7 @@ export type JobListParams = {
   limit?: number;
   search?: string;
   status?: string;
+  clientId?: number;
   departmentId?: number;
 };
 
@@ -58,6 +59,7 @@ export function useJobsList(params: JobListParams = {}) {
       const qs = new URLSearchParams({ page: String(params.page ?? 1), limit: String(params.limit ?? 15) });
       if (params.search) qs.set("search", params.search);
       if (params.status) qs.set("status", params.status);
+      if (params.clientId) qs.set("clientId", String(params.clientId));
       if (params.departmentId) qs.set("departmentId", String(params.departmentId));
       return clientFetch<{ data: Job[]; pagination: PaginationInfo }>(`/jobs?${qs}`);
     },

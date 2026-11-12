@@ -21,6 +21,7 @@ import { useIsManager } from "@/hooks/use-role";
 
 interface JobTableRowProps {
   job: Job;
+  clientName?: string;
   departmentName: string;
   onDelete: (job: Job) => void;
   isSelected: boolean;
@@ -29,6 +30,7 @@ interface JobTableRowProps {
 
 export function JobTableRow({
   job,
+  clientName,
   departmentName,
   onDelete,
   isSelected,
@@ -99,10 +101,13 @@ export function JobTableRow({
         </span>
       </TableCell>
       <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
-        {EMPLOYMENT_TYPE_LABELS[job.employmentType]}
+        {clientName ?? job.clientName ?? "—"}
       </TableCell>
       <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
         {departmentName}
+      </TableCell>
+      <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
+        {EMPLOYMENT_TYPE_LABELS[job.employmentType]}
       </TableCell>
       <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
         {formatDate(job.createdAt)}

@@ -3,7 +3,9 @@ export type Job = {
   slug: string;
   title: string;
   clientId?: number | null;
+  clientName?: string | null;
   departmentId?: number | null;
+  departmentName?: string | null;
   employmentType:
     | "full_time"
     | "part_time"
