@@ -194,10 +194,12 @@ export function JobApplicationForm({
 
   const salary = formatSalary(job);
   const metaParts = [
+    job.clientName,
     job.employmentType
       ? (EMPLOYMENT_LABELS[job.employmentType] ?? job.employmentType)
       : null,
     job.location,
+    job.departmentName,
     salary,
   ].filter(Boolean);
 

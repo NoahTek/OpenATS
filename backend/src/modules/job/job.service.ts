@@ -94,7 +94,11 @@ function generateSlug(title: string): string {
 
 export const jobService = {
   /** Published jobs for the public careers index (no auth). */
-  async listPublishedForCareers() {
+  async listPublishedForCareers(clientSlug?: string) {
+    const conditions = [eq(jobs.status, "published")];
+    if (clientSlug) {
+      conditions.push(eq(clients.slug, clientSlug));
+    }
     const rows = await db
       .select({
         id: jobs.id,
@@ -103,11 +107,15 @@ export const jobService = {
         employmentType: jobs.employmentType,
         location: jobs.location,
         departmentName: departments.name,
+        clientName: clients.name,
+        clientSlug: clients.slug,
+        clientLogoUrl: clients.logoUrl,
         createdAt: jobs.createdAt,
       })
       .from(jobs)
       .leftJoin(departments, eq(jobs.departmentId, departments.id))
-      .where(eq(jobs.status, "published"))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
+      .where(and(...conditions))
       .orderBy(desc(jobs.createdAt));
 
     return rows;

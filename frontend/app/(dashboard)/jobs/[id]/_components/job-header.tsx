@@ -236,11 +236,18 @@ export function JobHeader({
                   </h1>
 
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-slate-500 dark:text-neutral-400">
+                    {job?.clientName && (
+                      <span className="font-semibold text-slate-900 dark:text-neutral-100">
+                        {job.clientName}
+                      </span>
+                    )}
+                    {job?.clientName && <span>·</span>}
                     {job && (
                       <span className="truncate">
                         {EMPLOYMENT_LABELS[job.employmentType] ??
                           job.employmentType}
                         {job.location ? ` · ${job.location}` : ""}
+                        {job.departmentName ? ` · ${job.departmentName}` : ""}
                       </span>
                     )}
                     {job && STATUS_BADGE[job.status] && (

@@ -78,7 +78,14 @@ export function CandidateTableRow({
         )}
       </TableCell>
       <TableCell className="h-12 px-6 py-0 text-slate-800 dark:text-neutral-200 font-normal">
-        {candidate.jobTitle ?? "—"}
+        <div>
+          <div className="leading-tight">{candidate.jobTitle ?? "—"}</div>
+          {candidate.clientName && (
+            <div className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">
+              {candidate.clientName}
+            </div>
+          )}
+        </div>
       </TableCell>
       <TableCell className="h-12 px-6 py-0">
         <ScoreBadge

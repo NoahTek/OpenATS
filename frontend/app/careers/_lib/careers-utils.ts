@@ -7,6 +7,9 @@ export type CareerJobRow = {
   employmentType: Job["employmentType"];
   location: string | null;
   departmentName: string;
+  clientName?: string | null;
+  clientSlug?: string | null;
+  clientLogoUrl?: string | null;
   createdAt: string;
 };
 
@@ -81,6 +84,7 @@ export function filterJobs(jobs: CareerJobRow[], filters: JobFilters) {
       job.title.toLowerCase().includes(q) ||
       (job.location ?? "").toLowerCase().includes(q) ||
       job.departmentName.toLowerCase().includes(q) ||
+      (job.clientName ?? "").toLowerCase().includes(q) ||
       employmentLabel(job.employmentType).toLowerCase().includes(q);
     return (
       matchesSearch &&

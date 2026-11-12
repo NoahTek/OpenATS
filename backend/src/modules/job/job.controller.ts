@@ -101,11 +101,12 @@ const updateJobSchema = z
   .refine(weightsValid, { message: "Send all four score weights, at least one above 0" });
 
 export const listPublishedCareersJobs = async (
-  _req: Request,
+  req: Request,
   res: Response,
 ) => {
   try {
-    const result = await jobService.listPublishedForCareers();
+    const clientSlug = typeof req.query.client === "string" ? req.query.client : undefined;
+    const result = await jobService.listPublishedForCareers(clientSlug);
     res.status(200).json({ data: result });
   } catch (error) {
     logger.error(`Failed to fetch published careers jobs: ${getErrorMessage(error)}`);
@@ -234,7 +235,10 @@ export const getPublicJobById = async (req: Request, res: Response) => {
         id: result.id,
         slug: result.slug,
         title: result.title,
+        clientId: result.clientId,
+        clientName: result.clientName,
         departmentId: result.departmentId,
+        departmentName: result.departmentName,
         employmentType: result.employmentType,
         location: result.location,
         // Cleaned again on the way out. The careers page puts this straight into its HTML, so a

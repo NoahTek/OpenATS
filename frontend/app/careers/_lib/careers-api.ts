@@ -19,13 +19,34 @@ function publicApi(path: string) {
   return fetch(`${base}/public${path}`, { cache: "no-store" });
 }
 
+export type ClientInfo = {
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  description: string | null;
+  website: string | null;
+};
+
 /** Throws when the API fails: "no open roles" would be a false answer */
-export async function getPublishedJobs(): Promise<CareerJobRow[]> {
-  const res = await publicApi("/jobs");
+export async function getPublishedJobs(clientSlug?: string): Promise<CareerJobRow[]> {
+  const query = clientSlug ? `?client=${encodeURIComponent(clientSlug)}` : "";
+  const res = await publicApi(`/jobs${query}`);
   if (!res.ok) throw new Error(`Careers jobs failed: HTTP ${res.status}`);
   const body = (await res.json()) as { data?: unknown };
   return Array.isArray(body.data) ? (body.data as CareerJobRow[]) : [];
 }
+
+/** Null when the client can't be found */
+export const getClientInfo = cache(async (slug: string): Promise<ClientInfo | null> => {
+  try {
+    const res = await publicApi(`/clients/${encodeURIComponent(slug)}`);
+    if (!res.ok) return null;
+    const body = (await res.json()) as { data?: ClientInfo | null };
+    return body.data ?? null;
+  } catch {
+    return null;
+  }
+});
 
 /** Null when the company can't be read: the pages work without its name */
 export const getCompanyInfo = cache(async (): Promise<CompanyInfo | null> => {

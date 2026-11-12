@@ -199,3 +199,32 @@ export const deleteClientDepartment = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to delete client department" });
   }
 };
+
+export const getPublicClientBySlug = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    if (!slug) {
+      res.status(400).json({ error: "Client slug is required" });
+      return;
+    }
+
+    const client = await clientService.getBySlug(slug);
+    if (!client) {
+      res.status(404).json({ error: "Client not found" });
+      return;
+    }
+
+    res.status(200).json({
+      data: {
+        name: client.name,
+        slug: client.slug,
+        logoUrl: client.logoUrl,
+        description: client.description,
+        website: client.website,
+      },
+    });
+  } catch (error) {
+    logger.error(`Failed to fetch public client: ${getErrorMessage(error)}`);
+    res.status(500).json({ error: "Failed to fetch client" });
+  }
+};

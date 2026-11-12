@@ -15,6 +15,7 @@ import {
   offers,
   candidateRejections,
   candidateInterviews,
+  clients,
 } from "../../db/schema";
 import type { Candidate } from "../../db/schema/candidates";
 import { assessmentExecutionService } from "../assessment-execution/assessment-execution.service";
@@ -475,6 +476,7 @@ export const candidateService = {
           updatedAt: candidates.updatedAt,
           stageName: jobPipelineStages.name,
           jobTitle: jobs.title,
+          clientName: clients.name,
           ...scoreColumns,
         })
         .from(candidates)
@@ -483,6 +485,7 @@ export const candidateService = {
           eq(candidates.currentStageId, jobPipelineStages.id),
         )
         .leftJoin(jobs, eq(candidates.jobId, jobs.id))
+        .leftJoin(clients, eq(jobs.clientId, clients.id))
         .where(where)
         .orderBy(
           ...(rest.sort === "score"
@@ -570,6 +573,7 @@ export const candidateService = {
         updatedAt: candidates.updatedAt,
         stageName: jobPipelineStages.name,
         jobTitle: jobs.title,
+        clientName: clients.name,
         ...scoreColumns,
         weights: {
           questions: jobs.scoreWeightQuestions,
@@ -584,6 +588,7 @@ export const candidateService = {
         eq(candidates.currentStageId, jobPipelineStages.id),
       )
       .leftJoin(jobs, eq(candidates.jobId, jobs.id))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
       .where(eq(candidates.id, id));
 
     if (!candidate) return null;

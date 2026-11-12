@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon, Delete02Icon, GlobeIcon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, ArrowUpRight01Icon, Delete02Icon, GlobeIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { useClient, useDeleteClient } from "@/hooks/queries/use-clients";
 import { ClientForm } from "../_components/client-form";
@@ -93,6 +93,17 @@ export default function ClientDetailPage({
                     <HugeiconsIcon icon={GlobeIcon} className="size-3.5" />
                     Visit Website
                   </a>
+                )}
+                {client.slug && (
+                  <Link
+                    href={`/careers/clients/${client.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                  >
+                    <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-3.5" />
+                    Public Careers Page
+                  </Link>
                 )}
               </div>
               <p className="mt-2 text-sm text-slate-600 dark:text-neutral-400">

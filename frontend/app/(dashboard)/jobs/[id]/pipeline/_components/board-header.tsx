@@ -16,7 +16,7 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
 
 interface BoardHeaderProps {
   jobId: number;
-  job: Pick<Job, "title" | "status" | "employmentType" | "location"> | undefined;
+  job: Pick<Job, "title" | "status" | "employmentType" | "location" | "clientName"> | undefined;
   /** Null while the candidates are still loading. */
   candidateCount: number | null;
   /** Match count, or null without search */
@@ -43,6 +43,11 @@ export function BoardHeader({
             <h1 className="truncate text-xl font-semibold text-slate-900 dark:text-neutral-100">
               {job?.title ?? "Hiring pipeline"}
             </h1>
+            {job?.clientName && (
+              <span className="shrink-0 rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                {job.clientName}
+              </span>
+            )}
             {job && (
               <span
                 className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium ${

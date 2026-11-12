@@ -61,9 +61,16 @@ function JobRow({
         className="group grid gap-x-6 rounded-lg border border-slate-200 bg-white px-6 py-5 transition-colors duration-150 hover:border-theme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 motion-reduce:transition-none sm:grid-cols-[minmax(0,1fr)_16rem_8rem_1.25rem] sm:items-center dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-500 dark:focus-visible:outline-neutral-100"
       >
         <div className="min-w-0">
-          <Title className="text-lg font-semibold leading-snug text-slate-900 transition-colors duration-150 group-hover:text-theme motion-reduce:transition-none dark:text-neutral-100 dark:group-hover:text-neutral-100">
-            {job.title}
-          </Title>
+          <div className="flex flex-wrap items-center gap-2">
+            <Title className="text-lg font-semibold leading-snug text-slate-900 transition-colors duration-150 group-hover:text-theme motion-reduce:transition-none dark:text-neutral-100 dark:group-hover:text-neutral-100">
+              {job.title}
+            </Title>
+            {job.clientName && (
+              <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
+                {job.clientName}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
             {postedLabel(job.createdAt, now)}
           </p>

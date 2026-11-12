@@ -6,6 +6,7 @@ import {
   listPublishedCareersJobs,
 } from "../modules/job/job.controller";
 import { getPublicCompany } from "../modules/company/company.controller";
+import { getPublicClientBySlug } from "../modules/client/client.controller";
 import { checkOrigins } from "../middlewares/allowedOrigins.middleware";
 import { getPublicCustomQuestions } from "../modules/custom-question/custom-question.controller";
 import { applyForJob } from "../modules/candidate/candidate.controller";
@@ -156,6 +157,7 @@ router.get("/files/logos/:name", fileLimiter, async (req, res) => {
 });
 
 router.get("/company", checkOrigins, getPublicCompany);
+router.get("/clients/:slug", checkOrigins, getPublicClientBySlug);
 router.get("/jobs", checkOrigins, listPublishedCareersJobs);
 router.get("/jobs/:id", checkOrigins, getPublicJobById);
 router.get("/jobs/:jobId/questions", checkOrigins, getPublicCustomQuestions);

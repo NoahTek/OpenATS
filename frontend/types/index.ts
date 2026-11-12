@@ -279,6 +279,7 @@ export type Candidate = {
   updatedAt: string;
   stageName: string | null;
   jobTitle: string | null;
+  clientName?: string | null;
   /** Score parts, 0-100. Postgres `numeric` reaches us as a string; null until that part exists. */
   questionsScore?: string | null;
   assessmentScore?: string | null;
