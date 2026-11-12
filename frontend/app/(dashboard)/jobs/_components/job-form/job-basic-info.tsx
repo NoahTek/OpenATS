@@ -10,25 +10,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EMPLOYMENT_TYPE_LABELS } from "@/lib/job-labels";
-import type { Department, Job } from "@/types";
+import type { Client, Department, Job } from "@/types";
 
 interface JobBasicInfoProps {
   title: string;
   onTitleChange: (value: string) => void;
+  clientId: number | null;
+  onClientChange: (id: number | null) => void;
   departmentId: number | null;
   onDepartmentChange: (id: number | null) => void;
   employmentType: Job["employmentType"] | null;
   onEmploymentTypeChange: (type: Job["employmentType"] | null) => void;
+  clients: Client[];
   departments: Department[];
 }
 
 export function JobBasicInfo({
   title,
   onTitleChange,
+  clientId,
+  onClientChange,
   departmentId,
   onDepartmentChange,
   employmentType,
   onEmploymentTypeChange,
+  clients,
   departments,
 }: JobBasicInfoProps) {
   return (
@@ -45,24 +51,53 @@ export function JobBasicInfo({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="space-y-2.5">
           <Label className="text-sm font-semibold text-slate-700 dark:text-neutral-300">
-            Department
+            Client Company
           </Label>
           <Select
-            value={departmentId?.toString() ?? ""}
-            onValueChange={(val) => onDepartmentChange(Number(val))}
+            value={clientId?.toString() ?? "none"}
+            onValueChange={(val) => {
+              onClientChange(val === "none" ? null : Number(val));
+              onDepartmentChange(null);
+            }}
           >
             <SelectTrigger className="w-full h-10! bg-gray-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-600 shadow-none rounded-lg text-slate-800 dark:text-neutral-200 focus:ring-0">
-              <SelectValue placeholder="Select">
-                {departmentId
-                  ? (departments.find((d) => d.id === departmentId)?.name ??
-                    null)
-                  : null}
+              <SelectValue placeholder="Select client company">
+                {clientId
+                  ? (clients.find((c) => c.id === clientId)?.name ?? null)
+                  : "Select client company"}
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="rounded-lg shadow-lg border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+              <SelectItem value="none">None (Internal)</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2.5">
+          <Label className="text-sm font-semibold text-slate-700 dark:text-neutral-300">
+            Department <span className="text-xs font-normal text-slate-400 dark:text-neutral-500">(Optional)</span>
+          </Label>
+          <Select
+            value={departmentId?.toString() ?? "none"}
+            onValueChange={(val) => onDepartmentChange(val === "none" ? null : Number(val))}
+          >
+            <SelectTrigger className="w-full h-10! bg-gray-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-600 shadow-none rounded-lg text-slate-800 dark:text-neutral-200 focus:ring-0">
+              <SelectValue placeholder="No department">
+                {departmentId
+                  ? (departments.find((d) => d.id === departmentId)?.name ?? null)
+                  : "No department"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="rounded-lg shadow-lg border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+              <SelectItem value="none">No department</SelectItem>
               {departments.map((dept) => (
                 <SelectItem key={dept.id} value={String(dept.id)}>
                   {dept.name}

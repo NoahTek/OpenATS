@@ -13,7 +13,7 @@ import {
 import { sql } from "drizzle-orm";
 
 import { employmentType, jobStatus, payFrequency, salaryType } from "./enums";
-import { departments } from "./company";
+import { clients, departments } from "./company";
 import { users } from "./users";
 import { templates } from "./templates";
 
@@ -24,10 +24,12 @@ export const jobs = pgTable(
 
     slug: varchar("slug", { length: 255 }).notNull().unique(),
 
+    clientId: integer("client_id")
+      .references(() => clients.id, { onDelete: "set null" }),
+
     title: varchar("title", { length: 255 }).notNull(),
     departmentId: integer("department_id")
-      .notNull()
-      .references(() => departments.id),
+      .references(() => departments.id, { onDelete: "set null" }),
     employmentType: employmentType("employment_type").notNull(),
     location: varchar("location", { length: 255 }),
 

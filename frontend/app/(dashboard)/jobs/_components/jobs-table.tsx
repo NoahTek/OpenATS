@@ -122,7 +122,9 @@ export function JobsTable({
                   key={job.id}
                   job={job}
                   departmentName={
-                    departmentNameById.get(job.departmentId) ?? `Department #${job.departmentId}`
+                    job.departmentId
+                      ? (departmentNameById.get(job.departmentId) ?? `Department #${job.departmentId}`)
+                      : "—"
                   }
                   onDelete={onDelete}
                   isSelected={selection.selectedIds.has(job.id)}

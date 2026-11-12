@@ -2,6 +2,7 @@ import type { Job, JobDetail } from "@/types";
 
 export interface JobFormValues {
   title: string;
+  clientId: number | null;
   departmentId: number | null;
   employmentType: Job["employmentType"] | null;
   skills: string[];
@@ -19,12 +20,14 @@ export interface JobFormValues {
 }
 
 export type ValidJobFormValues = JobFormValues & {
-  departmentId: number;
+  clientId: number | null;
+  departmentId: number | null;
   employmentType: Job["employmentType"];
 };
 
 export const EMPTY_JOB_FORM_VALUES: JobFormValues = {
   title: "",
+  clientId: null,
   departmentId: null,
   employmentType: null,
   skills: [],
@@ -43,6 +46,7 @@ export const EMPTY_JOB_FORM_VALUES: JobFormValues = {
 export function jobToFormValues(job: JobDetail): JobFormValues {
   return {
     title: job.title ?? "",
+    clientId: job.clientId ?? null,
     departmentId: job.departmentId ?? null,
     employmentType: job.employmentType ?? null,
     skills: job.skills ?? [],
@@ -60,5 +64,5 @@ export function jobToFormValues(job: JobDetail): JobFormValues {
 }
 
 export function isValidJobForm(v: JobFormValues): v is ValidJobFormValues {
-  return Boolean(v.title.trim() && v.departmentId && v.employmentType);
+  return Boolean(v.title.trim() && v.employmentType);
 }

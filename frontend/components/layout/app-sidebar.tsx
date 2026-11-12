@@ -4,7 +4,9 @@ import * as React from "react";
 import {
   Home01Icon,
   BriefcaseBusinessIcon,
-  UsersRoundIcon,
+  Building02Icon,
+  FileUserIcon,
+  UserGroupIcon,
   Settings02Icon,
   Layout03Icon,
   Quiz03Icon,
@@ -25,14 +27,24 @@ const navMainData = [
     icon: Home01Icon,
   },
   {
+    title: "Clients",
+    url: "/clients",
+    icon: Building02Icon,
+  },
+  {
     title: "Manage Jobs",
     url: "/jobs",
     icon: BriefcaseBusinessIcon,
   },
   {
-    title: "Candidates",
+    title: "Job Applications",
     url: "/candidates",
-    icon: UsersRoundIcon,
+    icon: FileUserIcon,
+  },
+  {
+    title: "Talent Pool",
+    url: "/talent-pool",
+    icon: UserGroupIcon,
   },
   {
     title: "Interviews",

@@ -17,10 +17,14 @@ import rejectionRoutes from "../modules/rejection/rejections.routes";
 import candidateEmailRoutes from "../modules/candidate-email/candidate-email.routes";
 import integrationRoutes from "../modules/integrations/integrations.routes";
 import notificationRoutes from "../modules/notification/notification.routes";
+import clientRoutes from "../modules/client/client.routes";
+import talentPoolRoutes from "../modules/talent-pool/talent-pool.routes";
 
 const router: Router = Router();
 
 router.use("/company", companyRoutes);
+router.use("/clients", clientRoutes);
+router.use("/talent-pool", talentPoolRoutes);
 router.use("/jobs", jobRoutes);
 router.use("/users", userRoutes);
 router.use("/templates", templateRoutes);

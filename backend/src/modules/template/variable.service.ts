@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
-import { candidates, jobs, departments, company } from "../../db/schema";
+import { candidates, jobs, departments, company, clients } from "../../db/schema";
 import { TemplateContext } from "./template-engine.service";
 import { frontendUrl } from "../../utils/frontend-url";
 
@@ -11,17 +11,18 @@ export const variableService = {
    * sent to the candidate.
    */
   async getContextForCandidate(candidateId: number): Promise<TemplateContext> {
+    const [comp] = await db.select().from(company).limit(1);
     const [result] = await db
       .select({
         candidate: candidates,
         job: jobs,
         department: departments,
-        company: company,
+        client: clients,
       })
       .from(candidates)
       .innerJoin(jobs, eq(candidates.jobId, jobs.id))
-      .innerJoin(departments, eq(jobs.departmentId, departments.id))
-      .innerJoin(company, eq(departments.companyId, company.id))
+      .leftJoin(departments, eq(jobs.departmentId, departments.id))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
       .where(eq(candidates.id, candidateId));
 
     if (!result) return {};
@@ -29,7 +30,7 @@ export const variableService = {
     return {
       candidate_name: `${result.candidate.firstName} ${result.candidate.lastName}`,
       job_title: result.job.title,
-      company_name: result.company.name,
+      company_name: result.client?.name ?? comp?.name ?? "",
       employment_type: result.job.employmentType,
     };
   },

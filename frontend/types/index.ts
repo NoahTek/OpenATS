@@ -2,7 +2,8 @@ export type Job = {
   id: number;
   slug: string;
   title: string;
-  departmentId: number;
+  clientId?: number | null;
+  departmentId?: number | null;
   employmentType:
     | "full_time"
     | "part_time"
@@ -92,9 +93,54 @@ export type ChatMessage = {
 export type Department = {
   id: number;
   name: string;
-  companyId: number;
+  companyId?: number | null;
+  clientId?: number | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type Client = {
+  id: number;
+  name: string;
+  slug: string;
+  email: string | null;
+  website: string | null;
+  phone: string | null;
+  address: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  timeZone: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TalentPoolProfile = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  linkedinUrl: string | null;
+  source: string | null;
+  notes: string | null;
+  hasResume: boolean;
+  submissionCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TalentPoolProfileDetail = TalentPoolProfile & {
+  submissions: {
+    applicationId: number;
+    jobId: number;
+    jobTitle: string;
+    clientId: number | null;
+    status: string;
+    currentStageId: number | null;
+    stageName: string | null;
+    appliedAt: string;
+    totalScore: number | null;
+  }[];
 };
 
 export type Company = {

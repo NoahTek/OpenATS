@@ -26,7 +26,8 @@ export type JobListFilters = {
 
 export type CreateJobInput = {
   title: string;
-  departmentId: number;
+  clientId?: number | null;
+  departmentId?: number | null;
   employmentType:
     | "full_time"
     | "part_time"
@@ -52,7 +53,8 @@ export type CreateJobInput = {
 
 export type UpdateJobInput = {
   title?: string;
-  departmentId?: number;
+  clientId?: number | null;
+  departmentId?: number | null;
   employmentType?:
     | "full_time"
     | "part_time"
@@ -102,7 +104,7 @@ export const jobService = {
         createdAt: jobs.createdAt,
       })
       .from(jobs)
-      .innerJoin(departments, eq(jobs.departmentId, departments.id))
+      .leftJoin(departments, eq(jobs.departmentId, departments.id))
       .where(eq(jobs.status, "published"))
       .orderBy(desc(jobs.createdAt));
 
@@ -249,7 +251,8 @@ export const jobService = {
       const newJob: NewJob = {
         title: jobData.title,
         slug,
-        departmentId: jobData.departmentId,
+        clientId: jobData.clientId ?? null,
+        departmentId: jobData.departmentId ?? null,
         employmentType: jobData.employmentType,
         location: jobData.location ?? null,
         // Cleaned here, in the one place a description is written, whatever sent it.

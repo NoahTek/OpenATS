@@ -42,7 +42,8 @@ const weightsValid = (d: Partial<Record<keyof typeof scoreWeightsShape, number |
 const createJobSchema = z
   .object({
     title: z.string().min(1, "Title is required").max(255),
-    departmentId: z.number().int().positive("Department is required"),
+    clientId: z.number().int().positive().optional().nullable(),
+    departmentId: z.number().int().positive().optional().nullable(),
     employmentType: employmentTypeEnum,
     location: z.string().max(255).optional().nullable(),
     description: z.string().optional().nullable(),
@@ -79,8 +80,9 @@ const updateJobSchema = z
   .object({
   ...scoreWeightsShape,
   title: z.union([z.string().min(1).max(255), z.undefined()]).optional(),
+  clientId: z.union([z.number().int().positive(), z.null(), z.undefined()]).optional(),
   departmentId: z
-    .union([z.number().int().positive(), z.undefined()])
+    .union([z.number().int().positive(), z.null(), z.undefined()])
     .optional(),
   employmentType: employmentTypeEnum.optional(),
   location: z.union([z.string().max(255), z.null(), z.undefined()]).optional(),

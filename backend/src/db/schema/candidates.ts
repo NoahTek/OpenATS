@@ -27,10 +27,47 @@ import {
   jobCustomQuestionOptions,
 } from "./assessments";
 
+/**
+ * Global talent pool entity representing a person sourced by the agency.
+ * Can exist independently of any specific job and be submitted across multiple jobs.
+ */
+export const candidateProfiles = pgTable(
+  "candidate_profiles",
+  {
+    id: serial("id").primaryKey(),
+
+    firstName: varchar("first_name", { length: 100 }).notNull(),
+    lastName: varchar("last_name", { length: 100 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    phone: varchar("phone", { length: 50 }),
+    linkedinUrl: varchar("linkedin_url", { length: 500 }),
+    source: varchar("source", { length: 100 }),
+    notes: text("notes"),
+
+    // Key in the private bucket (resumes/<uuid>.pdf)
+    resumeKey: varchar("resume_key", { length: 1000 }),
+
+    createdBy: integer("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_candidate_profiles_email").on(t.email),
+  ],
+);
+
 export const candidates = pgTable(
   "candidates",
   {
     id: serial("id").primaryKey(),
+
+    candidateProfileId: integer("candidate_profile_id").references(
+      () => candidateProfiles.id,
+      { onDelete: "cascade" },
+    ),
 
     firstName: varchar("first_name", { length: 100 }).notNull(),
     lastName: varchar("last_name", { length: 100 }).notNull(),
@@ -340,6 +377,9 @@ export type CandidateAssessmentAnswer =
   typeof candidateAssessmentAnswers.$inferSelect;
 export type NewCandidateAssessmentAnswer =
   typeof candidateAssessmentAnswers.$inferInsert;
+
+export type CandidateProfile = typeof candidateProfiles.$inferSelect;
+export type NewCandidateProfile = typeof candidateProfiles.$inferInsert;
 
 export type CandidateCvAnalysis = typeof candidateCvAnalysis.$inferSelect;
 export type NewCandidateCvAnalysis = typeof candidateCvAnalysis.$inferInsert;

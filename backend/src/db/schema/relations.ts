@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 
-import { company, departments } from "./company";
+import { clients, company, departments } from "./company";
 import { users } from "./users";
 import { templates } from "./templates";
 import { jobs, jobSkills } from "./jobs";
@@ -18,6 +18,7 @@ import {
   jobAssessmentAttachments,
 } from "./assessments";
 import {
+  candidateProfiles,
   candidates,
   candidateStageHistory,
   candidateCustomAnswers,
@@ -40,12 +41,22 @@ import { candidateInterviews } from "./interviews";
 import { interviewFeedback } from "./interview-feedback";
 import { integrationConnections } from "./integrations";
 
+// clients
+export const clientsRelations = relations(clients, ({ many }) => ({
+  departments: many(departments),
+  jobs: many(jobs),
+}));
+
 // company
 export const companyRelations = relations(company, ({ many }) => ({
   departments: many(departments),
 }));
 
 export const departmentsRelations = relations(departments, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [departments.clientId],
+    references: [clients.id],
+  }),
   company: one(company, {
     fields: [departments.companyId],
     references: [company.id],
@@ -81,6 +92,10 @@ export const templatesRelations = relations(templates, ({ one, many }) => ({
 
 // jobs
 export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [jobs.clientId],
+    references: [clients.id],
+  }),
   department: one(departments, {
     fields: [jobs.departmentId],
     references: [departments.id],
@@ -223,8 +238,24 @@ export const jobAssessmentAttachmentsRelations = relations(
   }),
 );
 
+// candidateProfiles
+export const candidateProfilesRelations = relations(
+  candidateProfiles,
+  ({ one, many }) => ({
+    createdBy: one(users, {
+      fields: [candidateProfiles.createdBy],
+      references: [users.id],
+    }),
+    applications: many(candidates),
+  }),
+);
+
 // candidates
 export const candidatesRelations = relations(candidates, ({ one, many }) => ({
+  profile: one(candidateProfiles, {
+    fields: [candidates.candidateProfileId],
+    references: [candidateProfiles.id],
+  }),
   job: one(jobs, {
     fields: [candidates.jobId],
     references: [jobs.id],

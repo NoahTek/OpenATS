@@ -221,7 +221,7 @@ export default function CandidatesPageClient() {
       {/* Fixed header — never scrolls away */}
       <div className="flex-shrink-0 px-6 pt-4 pb-3 flex items-center justify-between">
         <h1 className="text-2xl font-medium text-slate-900 dark:text-neutral-100 leading-none">
-          Manage Candidates
+          Job Applications
         </h1>
       </div>
 

@@ -102,7 +102,8 @@ export function useCreateJob() {
   return useMutation({
     mutationFn: (data: {
       title: string;
-      departmentId: number;
+      clientId?: number | null;
+      departmentId?: number | null;
       employmentType: string;
       location?: string;
       description?: string;
@@ -130,7 +131,8 @@ export function useUpdateJob(jobId: number) {
   return useMutation({
     mutationFn: (data: {
       title?: string;
-      departmentId?: number;
+      clientId?: number | null;
+      departmentId?: number | null;
       employmentType?: Job["employmentType"];
       location?: string | null;
       description?: string | null;

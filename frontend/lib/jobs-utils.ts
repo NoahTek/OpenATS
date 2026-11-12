@@ -3,6 +3,7 @@ import type { Job } from "@/types";
 export type CreateJobPayload = Pick<
   Job,
   | "title"
+  | "clientId"
   | "departmentId"
   | "employmentType"
   | "skills"
@@ -20,7 +21,8 @@ export type CreateJobPayload = Pick<
 
 interface BuildJobPayloadParams {
   title: string;
-  departmentId: number;
+  clientId?: number | null;
+  departmentId?: number | null;
   employmentType: Job["employmentType"];
   location: string;
   description: string;
@@ -103,6 +105,7 @@ export function buildJobPayload(
 ): CreateJobPayload {
   const {
     title,
+    clientId,
     departmentId,
     employmentType,
     location,
@@ -114,7 +117,8 @@ export function buildJobPayload(
 
   return {
     title: title.trim(),
-    departmentId,
+    clientId: clientId ?? null,
+    departmentId: departmentId ?? null,
     employmentType,
     location: location || undefined,
     description: description || undefined,
@@ -126,7 +130,8 @@ export function buildJobPayload(
 
 export type UpdateJobPayload = ReturnType<typeof buildSalaryPayload> & {
   title: string;
-  departmentId: number;
+  clientId?: number | null;
+  departmentId?: number | null;
   employmentType: Job["employmentType"];
   location: string | null;
   description: string | null;
@@ -140,7 +145,8 @@ export function buildUpdateJobPayload(
 ): UpdateJobPayload {
   return {
     title: params.title.trim(),
-    departmentId: params.departmentId,
+    clientId: params.clientId ?? null,
+    departmentId: params.departmentId ?? null,
     employmentType: params.employmentType,
     location: params.location || null,
     description: params.description || null,

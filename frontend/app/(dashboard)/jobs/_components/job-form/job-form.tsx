@@ -2,6 +2,7 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { UnsavedChangesGuard } from "@/components/guards/unsaved-changes-guard";
+import { useClients, useClientDepartments } from "@/hooks/queries/use-clients";
 import type { Department } from "@/types";
 import { JobFormHeader } from "./job-form-header";
 import { JobBasicInfo } from "./job-basic-info";
@@ -20,7 +21,7 @@ import {
 interface JobFormProps {
   mode: "create" | "edit";
   initialValues?: JobFormValues;
-  departments: Department[];
+  departments?: Department[];
   isPending: boolean;
   onSubmit: (values: ValidJobFormValues) => void;
   onCancel: () => void;
@@ -37,6 +38,13 @@ export function JobForm({
 }: JobFormProps) {
   const [values, setValues] = useState<JobFormValues>(initialValues);
   const [skillInput, setSkillInput] = useState("");
+
+  const { data: clientsData } = useClients();
+  const clients = clientsData?.data ?? [];
+  const { data: clientDeptsData } = useClientDepartments(values.clientId ?? undefined);
+  const activeDepartments = values.clientId
+    ? (clientDeptsData?.data ?? [])
+    : (departments ?? []);
 
   const set = <K extends keyof JobFormValues>(key: K, value: JobFormValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -68,11 +76,14 @@ export function JobForm({
         <JobBasicInfo
           title={values.title}
           onTitleChange={(v) => set("title", v)}
+          clientId={values.clientId}
+          onClientChange={(v) => set("clientId", v)}
           departmentId={values.departmentId}
           onDepartmentChange={(v) => set("departmentId", v)}
           employmentType={values.employmentType}
           onEmploymentTypeChange={(v) => set("employmentType", v)}
-          departments={departments}
+          clients={clients}
+          departments={activeDepartments}
         />
 
         <SkillsInput
