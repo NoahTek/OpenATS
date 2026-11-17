@@ -103,7 +103,7 @@ export const talentPoolService = {
           createdAt: candidateProfiles.createdAt,
           updatedAt: candidateProfiles.updatedAt,
           submissionCount: sql<number>`(
-            select count(*)::int from candidates c where c.candidate_profile_id = ${candidateProfiles.id}
+            select count(*)::int from candidates c where c.candidate_profile_id = "candidate_profiles"."id"
           )`.as("submission_count"),
         })
         .from(candidateProfiles)

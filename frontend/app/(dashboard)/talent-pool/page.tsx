@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useTalentPool,
   useCreateTalentPoolProfile,
@@ -67,6 +67,16 @@ export default function TalentPoolPage() {
   const publishedJobs = (jobsData?.data ?? []).filter(
     (j) => j.status === "published",
   );
+
+  const sortedPublishedJobs = useMemo(() => {
+    return [...publishedJobs].sort((a, b) => {
+      const clientA = a.clientName?.trim() || "Unassigned Client";
+      const clientB = b.clientName?.trim() || "Unassigned Client";
+      const clientCmp = clientA.localeCompare(clientB);
+      if (clientCmp !== 0) return clientCmp;
+      return a.title.localeCompare(b.title);
+    });
+  }, [publishedJobs]);
 
   const profiles = data?.data ?? [];
 
@@ -614,15 +624,26 @@ export default function TalentPoolPage() {
                 onValueChange={(val) => setSelectedJobId(val ?? "")}
                 required
               >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose an active requisition..." />
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder="Choose an active requisition...">
+                    {(() => {
+                      const sel = sortedPublishedJobs.find((j) => j.id.toString() === selectedJobId);
+                      return sel ? (sel.clientName ? `${sel.clientName} — ${sel.title}` : sel.title) : null;
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {publishedJobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id.toString()}>
-                      {job.title}
-                    </SelectItem>
-                  ))}
+                <SelectContent className="max-w-md w-full">
+                  {sortedPublishedJobs.length === 0 ? (
+                    <div className="py-2 px-3 text-center text-xs text-slate-500">
+                      No published jobs available
+                    </div>
+                  ) : (
+                    sortedPublishedJobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.clientName ? `${job.clientName} — ${job.title}` : job.title}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

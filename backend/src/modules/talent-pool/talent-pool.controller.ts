@@ -7,6 +7,7 @@ import { extractContacts } from "../candidate/cv-text/contacts";
 import { extractPdfText } from "../candidate/cv-text/extract-pdf";
 import { detectFileType } from "../candidate/cv-text/detect";
 import { resumeUploadService } from "../upload/resume-upload.service";
+import { DuplicateApplicationError } from "../candidate/candidate.service";
 import { r2Service } from "../../shared/services/r2.service";
 import logger from "../../utils/logger";
 import { getErrorMessage } from "../../utils/error.utils";
@@ -156,6 +157,10 @@ export const submitProfileToJob = async (req: Request, res: Response) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: error.issues[0]?.message ?? "Invalid input" });
+      return;
+    }
+    if (error instanceof DuplicateApplicationError) {
+      res.status(409).json({ error: "This candidate has already been submitted to this job" });
       return;
     }
     logger.error(`Failed to submit candidate to job: ${getErrorMessage(error)}`);
