@@ -9,6 +9,7 @@ import {
   useDeleteTalentPoolProfile,
 } from "@/hooks/queries/use-talent-pool";
 import { useJobs } from "@/hooks/queries/use-jobs";
+import { useClients } from "@/hooks/queries/use-clients";
 import type { TalentPoolProfile } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,21 @@ export default function TalentPoolPage() {
       return a.title.localeCompare(b.title);
     });
   }, [publishedJobs]);
+
+  const { data: clientsData } = useClients();
+  const clients = clientsData?.data ?? [];
+
+  const sortedClients = useMemo(() => {
+    return [...clients].sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients]);
+
+  const [selectedClientId, setSelectedClientId] = useState<string>("all");
+
+  const availableJobs = useMemo(() => {
+    if (selectedClientId === "all") return sortedPublishedJobs;
+    const cId = parseInt(selectedClientId, 10);
+    return sortedPublishedJobs.filter((j) => j.clientId === cId);
+  }, [sortedPublishedJobs, selectedClientId]);
 
   const profiles = data?.data ?? [];
 
@@ -228,6 +244,7 @@ export default function TalentPoolPage() {
       });
       toast.success(`Successfully submitted ${submitProfile.firstName} to job`);
       setSubmitProfile(null);
+      setSelectedClientId("all");
       setSelectedJobId("");
       setSubmissionNotes("");
     } catch (err: unknown) {
@@ -376,6 +393,7 @@ export default function TalentPoolPage() {
                           size="sm"
                           onClick={() => {
                             setSubmitProfile(profile);
+                            setSelectedClientId("all");
                             setSelectedJobId("");
                             setSubmissionNotes("");
                           }}
@@ -604,7 +622,14 @@ export default function TalentPoolPage() {
       {/* Submit to Client Job Modal */}
       <Dialog
         open={Boolean(submitProfile)}
-        onOpenChange={(open) => !open && setSubmitProfile(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSubmitProfile(null);
+            setSelectedClientId("all");
+            setSelectedJobId("");
+            setSubmissionNotes("");
+          }
+        }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -617,6 +642,44 @@ export default function TalentPoolPage() {
           <form onSubmit={handleSubmitToJob} className="space-y-4 py-2">
             <div>
               <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
+                Filter by Company
+              </label>
+              <Select
+                value={selectedClientId}
+                onValueChange={(val) => {
+                  const nextClient = val ?? "all";
+                  setSelectedClientId(nextClient);
+                  if (nextClient !== "all") {
+                    const cId = parseInt(nextClient, 10);
+                    const currentJob = publishedJobs.find(
+                      (j) => j.id.toString() === selectedJobId,
+                    );
+                    if (currentJob && currentJob.clientId !== cId) {
+                      setSelectedJobId("");
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder="All Companies">
+                    {selectedClientId === "all"
+                      ? "All Companies"
+                      : clients.find((c) => c.id.toString() === selectedClientId)?.name ?? "All Companies"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="max-w-md w-full">
+                  <SelectItem value="all">All Companies</SelectItem>
+                  {sortedClients.map((client) => (
+                    <SelectItem key={client.id} value={client.id.toString()}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
                 Select Client Job *
               </label>
               <Select
@@ -627,18 +690,20 @@ export default function TalentPoolPage() {
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Choose an active requisition...">
                     {(() => {
-                      const sel = sortedPublishedJobs.find((j) => j.id.toString() === selectedJobId);
+                      const sel = availableJobs.find((j) => j.id.toString() === selectedJobId);
                       return sel ? (sel.clientName ? `${sel.clientName} — ${sel.title}` : sel.title) : null;
                     })()}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-w-md w-full">
-                  {sortedPublishedJobs.length === 0 ? (
+                  {availableJobs.length === 0 ? (
                     <div className="py-2 px-3 text-center text-xs text-slate-500">
-                      No published jobs available
+                      {selectedClientId === "all"
+                        ? "No published jobs available"
+                        : "No published jobs available for this company"}
                     </div>
                   ) : (
-                    sortedPublishedJobs.map((job) => (
+                    availableJobs.map((job) => (
                       <SelectItem key={job.id} value={job.id.toString()}>
                         {job.clientName ? `${job.clientName} — ${job.title}` : job.title}
                       </SelectItem>
@@ -665,7 +730,12 @@ export default function TalentPoolPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setSubmitProfile(null)}
+                onClick={() => {
+                  setSubmitProfile(null);
+                  setSelectedClientId("all");
+                  setSelectedJobId("");
+                  setSubmissionNotes("");
+                }}
               >
                 Cancel
               </Button>
