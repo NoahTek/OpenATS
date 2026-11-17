@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useJobsList, useBulkDeleteJobs, useDeleteJob } from "@/hooks/queries/use-jobs";
-import { useDepartments } from "@/hooks/queries/use-company";
+import { useClients, useClientDepartments } from "@/hooks/queries/use-clients";
 import type { Job } from "@/types";
 import { JobFilters } from "./job-filters";
 import { JobsTable } from "./jobs-table";
@@ -12,16 +12,21 @@ import { JobDeleteDialog } from "./job-delete-dialog";
 const PAGE_LIMIT = 15;
 
 export function JobsPageClient() {
-  const { data: deptData } = useDepartments();
-  const departments = deptData?.data ?? [];
+  const { data: clientData } = useClients();
+  const clients = clientData?.data ?? [];
 
   // ── Filter State ───────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterClient, setFilterClient] = useState("all");
   const [filterDept, setFilterDept] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [page, setPage] = useState(1);
+
+  const selectedClientId = filterClient === "all" ? undefined : parseInt(filterClient);
+  const { data: deptData } = useClientDepartments(selectedClientId);
+  const departments = deptData?.data ?? [];
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -36,6 +41,7 @@ export function JobsPageClient() {
     limit: PAGE_LIMIT,
     search: debouncedSearch || undefined,
     status: filterStatus === "all" ? undefined : filterStatus,
+    clientId: selectedClientId,
     departmentId: filterDept === "all" ? undefined : parseInt(filterDept),
   });
 
@@ -53,6 +59,12 @@ export function JobsPageClient() {
     departments.forEach((d) => map.set(d.id, d.name));
     return map;
   }, [departments]);
+
+  const clientNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    clients.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [clients]);
 
   // ── Delete ─────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Job | null>(null);
@@ -87,12 +99,18 @@ export function JobsPageClient() {
   const resetPage = () => setPage(1);
 
   const handleSearchChange = useCallback((v: string) => { setSearchTerm(v); }, []);
+  const handleClientChange = useCallback((v: string) => {
+    setFilterClient(v);
+    setFilterDept("all");
+    resetPage();
+  }, []);
   const handleDeptChange = useCallback((v: string) => { setFilterDept(v); resetPage(); }, []);
   const handleTypeChange = useCallback((v: string) => { setFilterType(v); resetPage(); }, []);
   const handleStatusChange = useCallback((v: string) => { setFilterStatus(v); resetPage(); }, []);
 
   const handleClearFilters = useCallback(() => {
     setSearchTerm("");
+    setFilterClient("all");
     setFilterDept("all");
     setFilterType("all");
     setFilterStatus("all");
@@ -110,12 +128,16 @@ export function JobsPageClient() {
       <JobFilters
         searchTerm={searchTerm}
         onSearchChange={handleSearchChange}
+        filterClient={filterClient}
+        onClientChange={handleClientChange}
         filterDept={filterDept}
         onDeptChange={handleDeptChange}
         filterType={filterType}
         onTypeChange={handleTypeChange}
         filterStatus={filterStatus}
         onStatusChange={handleStatusChange}
+        clients={clients}
+        clientNameById={clientNameById}
         departments={departments}
         departmentNameById={departmentNameById}
         onClear={handleClearFilters}

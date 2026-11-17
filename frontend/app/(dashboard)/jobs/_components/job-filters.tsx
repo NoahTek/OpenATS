@@ -12,19 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Department } from "@/types";
+import type { Department, Client } from "@/types";
 import { EMPLOYMENT_TYPE_LABELS, STATUS_LABELS } from "@/lib/job-labels";
 import { useIsManager } from "@/hooks/use-role";
 
 interface JobFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
+  filterClient: string;
+  onClientChange: (value: string) => void;
   filterDept: string;
   onDeptChange: (value: string) => void;
   filterType: string;
   onTypeChange: (value: string) => void;
   filterStatus: string;
   onStatusChange: (value: string) => void;
+  clients: Client[];
+  clientNameById: Map<number, string>;
   departments: Department[];
   departmentNameById: Map<number, string>;
   onClear: () => void;
@@ -33,12 +37,16 @@ interface JobFiltersProps {
 export function JobFilters({
   searchTerm,
   onSearchChange,
+  filterClient,
+  onClientChange,
   filterDept,
   onDeptChange,
   filterType,
   onTypeChange,
   filterStatus,
   onStatusChange,
+  clients,
+  clientNameById,
   departments,
   departmentNameById,
   onClear,
@@ -60,16 +68,45 @@ export function JobFilters({
       </div>
 
       <Select
-        value={filterDept}
+        value={filterClient}
         onValueChange={(value) => {
-          if (value !== null) onDeptChange(value);
+          if (value !== null) onClientChange(value);
         }}
       >
         <SelectTrigger className="w-40 h-8! bg-gray-100 cursor-pointer dark:bg-neutral-800 border border-slate-300 dark:border-neutral-600 shadow-none rounded-md text-slate-800 dark:text-neutral-200 text-sm focus:ring-0 focus-visible:ring-0 px-3">
           <SelectValue>
-            {filterDept === "all"
+            {filterClient === "all"
+              ? "All Clients"
+              : (clientNameById.get(Number(filterClient)) ?? "Client")}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent
+          align="start"
+          className="w-60 rounded-lg shadow-lg border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+        >
+          <SelectItem value="all">All Clients</SelectItem>
+          {clients.map((client) => (
+            <SelectItem key={client.id} value={String(client.id)}>
+              {client.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filterDept}
+        onValueChange={(value) => {
+          if (value !== null) onDeptChange(value);
+        }}
+        disabled={filterClient === "all"}
+      >
+        <SelectTrigger className="w-40 h-8! bg-gray-100 cursor-pointer dark:bg-neutral-800 border border-slate-300 dark:border-neutral-600 shadow-none rounded-md text-slate-800 dark:text-neutral-200 text-sm focus:ring-0 focus-visible:ring-0 px-3 disabled:opacity-50 disabled:cursor-not-allowed">
+          <SelectValue>
+            {filterClient === "all"
               ? "All Departments"
-              : (departmentNameById.get(Number(filterDept)) ?? "Department")}
+              : filterDept === "all"
+                ? "All Departments"
+                : (departmentNameById.get(Number(filterDept)) ?? "Department")}
           </SelectValue>
         </SelectTrigger>
         <SelectContent
