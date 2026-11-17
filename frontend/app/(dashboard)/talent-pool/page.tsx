@@ -118,6 +118,7 @@ export default function TalentPoolPage() {
     setIsParsingResume(true);
     try {
       const formData = new FormData();
+      formData.append("file", file);
       formData.append("resume", file);
 
       const res = await fetch("/api/proxy/talent-pool/parse-resume", {
@@ -134,11 +135,11 @@ export default function TalentPoolPage() {
       setResumeUploadId(parsed.uploadId);
       setUploadedFileName(file.name);
 
-      if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
-      if (parsed.lastName && !lastName) setLastName(parsed.lastName);
-      if (parsed.email && !email) setEmail(parsed.email);
-      if (parsed.phone && !phone) setPhone(parsed.phone);
-      if (parsed.linkedinUrl && !linkedinUrl) setLinkedinUrl(parsed.linkedinUrl);
+      if (parsed.firstName) setFirstName(parsed.firstName);
+      if (parsed.lastName) setLastName(parsed.lastName);
+      if (parsed.email) setEmail(parsed.email);
+      if (parsed.phone) setPhone(parsed.phone);
+      if (parsed.linkedinUrl) setLinkedinUrl(parsed.linkedinUrl);
 
       toast.success("Resume parsed and details auto-filled");
     } catch (err: unknown) {

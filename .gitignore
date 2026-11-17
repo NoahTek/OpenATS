@@ -6,3 +6,4 @@ playwright/.cache/
 coverage/
 # Test Data: Resumes
 /testdata
+storage/private/resumes
