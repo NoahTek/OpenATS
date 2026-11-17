@@ -642,7 +642,7 @@ export default function TalentPoolPage() {
           <form onSubmit={handleSubmitToJob} className="space-y-4 py-2">
             <div>
               <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
-                Filter by Company
+                Filter by Client
               </label>
               <Select
                 value={selectedClientId}
@@ -661,14 +661,14 @@ export default function TalentPoolPage() {
                 }}
               >
                 <SelectTrigger className="mt-1 w-full">
-                  <SelectValue placeholder="All Companies">
+                  <SelectValue placeholder="All Clients">
                     {selectedClientId === "all"
-                      ? "All Companies"
-                      : clients.find((c) => c.id.toString() === selectedClientId)?.name ?? "All Companies"}
+                      ? "All Clients"
+                      : clients.find((c) => c.id.toString() === selectedClientId)?.name ?? "All Clients"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-w-md w-full">
-                  <SelectItem value="all">All Companies</SelectItem>
+                  <SelectItem value="all">All Clients</SelectItem>
                   {sortedClients.map((client) => (
                     <SelectItem key={client.id} value={client.id.toString()}>
                       {client.name}
@@ -700,7 +700,7 @@ export default function TalentPoolPage() {
                     <div className="py-2 px-3 text-center text-xs text-slate-500">
                       {selectedClientId === "all"
                         ? "No published jobs available"
-                        : "No published jobs available for this company"}
+                        : "No published jobs available for this client"}
                     </div>
                   ) : (
                     availableJobs.map((job) => (
