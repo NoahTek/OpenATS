@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
   useTalentPool,
   useCreateTalentPoolProfile,
@@ -112,6 +113,7 @@ export default function TalentPoolPage() {
   const [resumeUploadId, setResumeUploadId] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isParsingResume, setIsParsingResume] = useState(false);
+  const [isDraggingResume, setIsDraggingResume] = useState(false);
 
   const [editingProfile, setEditingProfile] = useState<TalentPoolProfile | null>(null);
   const [viewCvProfile, setViewCvProfile] = useState<TalentPoolProfile | null>(null);
@@ -137,12 +139,11 @@ export default function TalentPoolPage() {
     setNotes("");
     setResumeUploadId(null);
     setUploadedFileName(null);
+    setIsDraggingResume(false);
     setIsAddOpen(true);
   };
 
-  const handleResumeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processResumeFile = async (file: File) => {
     const name = file.name.toLowerCase();
     if (!name.endsWith(".pdf") && !name.endsWith(".docx") && !name.endsWith(".doc")) {
       toast.error("Please upload a PDF or Word document (.docx, .doc)");
@@ -180,8 +181,15 @@ export default function TalentPoolPage() {
       toast.error(err instanceof Error ? err.message : "Failed to parse resume");
     } finally {
       setIsParsingResume(false);
-      e.target.value = "";
     }
+  };
+
+  const handleResumeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processResumeFile(file);
+    }
+    e.target.value = "";
   };
 
   const handleOpenEdit = (profile: TalentPoolProfile) => {
@@ -193,6 +201,7 @@ export default function TalentPoolPage() {
     setLinkedinUrl(profile.linkedinUrl ?? "");
     setSource(profile.source ?? "");
     setNotes(profile.notes ?? "");
+    setIsDraggingResume(false);
     setIsAddOpen(true);
   };
 
@@ -473,8 +482,14 @@ export default function TalentPoolPage() {
       </div>
 
       {/* Source / Add Candidate Modal */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(open) => {
+          if (!open) setIsDraggingResume(false);
+          setIsAddOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingProfile ? "Edit Candidate Profile" : "Add Candidate"}
@@ -482,17 +497,48 @@ export default function TalentPoolPage() {
             <DialogDescription>
               {editingProfile
                 ? "Update candidate profile details, contact information, and recruiter notes."
-                : "Upload a PDF resume to instantly auto-fill details, or enter them manually."}
+                : "Upload or drag & drop a resume to instantly auto-fill details, or enter them manually."}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSaveProfile} className="space-y-4 py-2">
             {!editingProfile && (
-              <div className="rounded-lg border border-dashed border-slate-300 dark:border-neutral-700 p-3 bg-slate-50/50 dark:bg-neutral-900/50">
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingResume(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  setIsDraggingResume(false);
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingResume(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    await processResumeFile(file);
+                  }
+                }}
+                className={cn(
+                  "relative rounded-lg border-2 border-dashed p-3 transition-all",
+                  isDraggingResume
+                    ? "border-primary bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/20 scale-[1.01]"
+                    : "border-slate-300 dark:border-neutral-700 bg-slate-50/50 dark:bg-neutral-900/50"
+                )}
+              >
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-slate-700 dark:text-neutral-300 flex items-center gap-1.5">
                     <HugeiconsIcon icon={FileUploadIcon} className="size-4 text-theme" />
-                    Resume / CV (PDF)
+                    Resume / CV (PDF, Word)
                   </label>
                   {uploadedFileName && (
                     <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
@@ -503,39 +549,54 @@ export default function TalentPoolPage() {
                 </div>
 
                 {isParsingResume ? (
-                  <div className="mt-2 flex items-center justify-center gap-2 py-3 text-xs text-slate-600 dark:text-neutral-400">
+                  <div className="mt-2 flex items-center justify-center gap-2 py-4 text-xs text-slate-600 dark:text-neutral-400">
                     <Spinner className="size-4 animate-spin text-theme" />
                     <span>Parsing resume & extracting contact details...</span>
                   </div>
+                ) : isDraggingResume ? (
+                  <div className="mt-2 flex flex-col items-center justify-center rounded-md border border-primary/40 bg-white/80 dark:bg-neutral-800/80 p-4 text-center">
+                    <HugeiconsIcon icon={FileUploadIcon} className="size-6 text-primary mb-1 animate-bounce" />
+                    <span className="text-xs font-medium text-primary">
+                      Drop resume here to auto-fill details
+                    </span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5">
+                      Supports PDF, DOCX, DOC
+                    </span>
+                  </div>
                 ) : uploadedFileName ? (
-                  <div className="mt-2 flex items-center justify-between rounded-md bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 px-3 py-2 text-xs">
-                    <div className="flex items-center gap-2 truncate">
-                      <HugeiconsIcon icon={FileUploadIcon} className="size-4 text-slate-500 shrink-0" />
-                      <span className="truncate font-medium text-slate-800 dark:text-neutral-200">
-                        {uploadedFileName}
-                      </span>
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-center justify-between rounded-md bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 truncate">
+                        <HugeiconsIcon icon={FileUploadIcon} className="size-4 text-slate-500 shrink-0" />
+                        <span className="truncate font-medium text-slate-800 dark:text-neutral-200">
+                          {uploadedFileName}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResumeUploadId(null);
+                          setUploadedFileName(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300 ml-2"
+                        title="Remove attached resume"
+                      >
+                        <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setResumeUploadId(null);
-                        setUploadedFileName(null);
-                      }}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300 ml-2"
-                      title="Remove attached resume"
-                    >
-                      <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
-                    </button>
+                    <p className="text-[11px] text-slate-400 text-center">
+                      Drag & drop another resume here to replace
+                    </p>
                   </div>
                 ) : (
                   <div className="mt-2">
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-800/80 p-3 text-center hover:bg-slate-50 dark:hover:bg-neutral-800 transition">
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-800/80 p-3.5 text-center hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-300 dark:hover:border-neutral-600 transition">
                       <HugeiconsIcon icon={FileUploadIcon} className="size-5 text-slate-400 mb-1" />
                       <span className="text-xs font-medium text-slate-700 dark:text-neutral-300">
-                        Upload resume (PDF, Word) to auto-fill details
+                        Drag & drop resume here, or <span className="text-primary underline underline-offset-2">browse</span>
                       </span>
                       <span className="text-[11px] text-slate-400 mt-0.5">
-                        Extracts name, email, phone & LinkedIn automatically
+                        Upload PDF or Word (.docx, .doc) to auto-fill contact details
                       </span>
                       <input
                         type="file"

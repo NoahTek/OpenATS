@@ -12,12 +12,24 @@ import {
   Quiz03Icon,
   TelegramIcon,
   CoPresentIcon,
+  SidebarLeftIcon,
+  SidebarRight01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { usePathname } from "next/navigation";
 
 import { NavMain } from "@/components/layout/nav-main";
-import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarRail,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { useRole } from "@/hooks/use-role";
 
 const navMainData = [
@@ -98,6 +110,15 @@ const navMainData = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { isSuperAdmin, isManager } = useRole();
+  const { state, collapseMode, toggleSidebar, isMobile, setOpenMobile } =
+    useSidebar();
+
+  // Close mobile sidebar on route change
+  React.useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [pathname, isMobile, setOpenMobile]);
 
   const items = navMainData
     .filter((item) => {
@@ -133,6 +154,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="pt-4">
         <NavMain items={items} />
       </SidebarContent>
+      {!isMobile && (
+        <SidebarFooter className="border-t border-sidebar-border px-1.5 py-2">
+          <SidebarMenu>
+            <SidebarMenuItem className="group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+              <SidebarMenuButton
+                tooltip={
+                  state === "expanded"
+                    ? collapseMode === "icon"
+                      ? "Collapse to icon rail"
+                      : "Collapse sidebar"
+                    : "Expand sidebar"
+                }
+                onClick={toggleSidebar}
+                className="h-9 text-xs text-muted-foreground hover:text-foreground cursor-pointer p-0 pr-2 group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center"
+              >
+                <div className="flex size-9 shrink-0 items-center justify-center">
+                  <HugeiconsIcon
+                    icon={state === "expanded" ? SidebarLeftIcon : SidebarRight01Icon}
+                    className="!size-4 shrink-0"
+                  />
+                </div>
+                <span className="truncate group-data-[collapsible=icon]:hidden">
+                  {state === "expanded"
+                    ? collapseMode === "icon"
+                      ? "Collapse to icons"
+                      : "Collapse sidebar"
+                    : "Expand"}
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
+      <SidebarRail />
     </Sidebar>
   );
 }

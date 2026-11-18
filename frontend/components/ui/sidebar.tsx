@@ -21,17 +21,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SidebarLeftIcon } from "@hugeicons/core-free-icons";
+import { SidebarLeftIcon, Menu01Icon } from "@hugeicons/core-free-icons";
+import Image from "next/image";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
+const SIDEBAR_COLLAPSE_MODE_COOKIE_NAME = "sidebar_collapse_mode";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "14rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+
+export type SidebarCollapseMode = "icon" | "offcanvas";
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
@@ -41,6 +46,8 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  collapseMode: SidebarCollapseMode;
+  setCollapseMode: (mode: SidebarCollapseMode) => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -58,6 +65,9 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  defaultCollapseMode = "icon",
+  collapseMode: collapseModeProp,
+  onCollapseModeChange: setCollapseModeProp,
   className,
   style,
   children,
@@ -66,6 +76,9 @@ function SidebarProvider({
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  defaultCollapseMode?: SidebarCollapseMode;
+  collapseMode?: SidebarCollapseMode;
+  onCollapseModeChange?: (mode: SidebarCollapseMode) => void;
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
@@ -89,11 +102,59 @@ function SidebarProvider({
     [setOpenProp, open],
   );
 
-  // Helper to toggle the sidebar - disabled.
+  const [_collapseMode, _setCollapseMode] =
+    React.useState<SidebarCollapseMode>(defaultCollapseMode);
+  const collapseMode = collapseModeProp ?? _collapseMode;
+  const setCollapseMode = React.useCallback(
+    (
+      value:
+        | SidebarCollapseMode
+        | ((value: SidebarCollapseMode) => SidebarCollapseMode),
+    ) => {
+      const newMode =
+        typeof value === "function" ? value(collapseMode) : value;
+      if (setCollapseModeProp) {
+        setCollapseModeProp(newMode);
+      } else {
+        _setCollapseMode(newMode);
+      }
+
+      document.cookie = `${SIDEBAR_COLLAPSE_MODE_COOKIE_NAME}=${newMode}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+    },
+    [setCollapseModeProp, collapseMode],
+  );
+
+  // Helper to toggle the sidebar
   const toggleSidebar = React.useCallback(() => {
-    // Toggling is disabled as per user request to keep sidebar expanded.
-    return;
-  }, []);
+    return isMobile
+      ? setOpenMobile((open) => !open)
+      : setOpen((open) => !open);
+  }, [isMobile, setOpen, setOpenMobile]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
+        (event.metaKey || event.ctrlKey)
+      ) {
+        const target = event.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleSidebar]);
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
@@ -108,29 +169,43 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      collapseMode,
+      setCollapseMode,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [
+      state,
+      open,
+      setOpen,
+      isMobile,
+      openMobile,
+      setOpenMobile,
+      toggleSidebar,
+      collapseMode,
+      setCollapseMode,
+    ],
   );
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <div
-        data-slot="sidebar-wrapper"
-        style={
-          {
-            "--sidebar-width": SIDEBAR_WIDTH,
-            "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-            ...style,
-          } as React.CSSProperties
-        }
-        className={cn(
-          "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </div>
+      <TooltipProvider delay={0}>
+        <div
+          data-slot="sidebar-wrapper"
+          style={
+            {
+              "--sidebar-width": SIDEBAR_WIDTH,
+              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+              ...style,
+            } as React.CSSProperties
+          }
+          className={cn(
+            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      </TooltipProvider>
     </SidebarContext.Provider>
   );
 }
@@ -138,7 +213,7 @@ function SidebarProvider({
 function Sidebar({
   side = "left",
   variant = "sidebar",
-  collapsible = "offcanvas",
+  collapsible: collapsibleProp,
   className,
   children,
   dir,
@@ -148,7 +223,9 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, state, openMobile, setOpenMobile, collapseMode } =
+    useSidebar();
+  const collapsible = collapsibleProp ?? collapseMode;
 
   if (collapsible === "none") {
     return (
@@ -173,7 +250,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+          className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -182,10 +259,26 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>Navigation Menu</SheetTitle>
+            <SheetDescription>Main navigation sidebar</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/assets/openats-logo.png"
+                alt="OpenATS"
+                width={28}
+                height={28}
+                className="size-7 object-contain dark:brightness-0 dark:invert"
+              />
+              <span className="text-xl font-semibold leading-none tracking-tight text-foreground select-none">
+                OpenATS
+              </span>
+            </div>
+          </div>
+          <div className="flex h-[calc(100%-3.5rem)] w-full flex-col overflow-y-auto">
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -242,7 +335,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile, state } = useSidebar();
 
   return (
     <Button
@@ -250,14 +343,29 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon-sm"
-      className={cn(className)}
+      className={cn(
+        "size-9 rounded-sm text-muted-foreground hover:text-foreground cursor-pointer",
+        className,
+      )}
       onClick={(event) => {
         onClick?.(event);
         toggleSidebar();
       }}
+      aria-label="Toggle sidebar"
+      title={
+        isMobile
+          ? "Toggle menu"
+          : state === "expanded"
+            ? "Collapse sidebar (Ctrl+B)"
+            : "Expand sidebar (Ctrl+B)"
+      }
       {...props}
     >
-      <HugeiconsIcon icon={SidebarLeftIcon} strokeWidth={2} />
+      <HugeiconsIcon
+        icon={isMobile ? Menu01Icon : SidebarLeftIcon}
+        strokeWidth={2}
+        className="size-4.5"
+      />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
@@ -506,7 +614,7 @@ function SidebarMenuButton({
       },
       props,
     ),
-    render: !tooltip ? render : TooltipTrigger,
+    render,
     state: {
       slot: "sidebar-menu-button",
       sidebar: "menu-button",
@@ -515,7 +623,7 @@ function SidebarMenuButton({
     },
   });
 
-  if (!tooltip) {
+  if (!tooltip || state !== "collapsed" || isMobile) {
     return comp;
   }
 
@@ -527,11 +635,10 @@ function SidebarMenuButton({
 
   return (
     <Tooltip>
-      {comp}
+      <TooltipTrigger render={comp} />
       <TooltipContent
         side="right"
         align="center"
-        hidden={state !== "collapsed" || isMobile}
         {...tooltip}
       />
     </Tooltip>
