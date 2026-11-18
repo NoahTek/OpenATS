@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,7 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
   const [isParsing, setIsParsing] = useState(false);
   const [parseProgress, setParseProgress] = useState<{ total: number; filename: string } | null>(null);
   const [items, setItems] = useState<ParsedBulkItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const bulkCreateMutation = useBulkCreateTalentPoolProfiles();
 
@@ -210,6 +212,7 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
     setSelectedJobId("");
     setSelectedClientId("all");
     setDestinationType("talent-pool");
+    setIsDragging(false);
   };
 
   return (
@@ -220,7 +223,14 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
+      <DialogContent
+        className={cn(
+          "max-w-[calc(100%-2rem)] flex flex-col p-6 max-h-[92vh] transition-all duration-200",
+          step === "review"
+            ? "w-[96vw] sm:max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px]"
+            : "w-full sm:max-w-2xl lg:sm:max-w-3xl"
+        )}
+      >
         <DialogHeader className="shrink-0">
           <DialogTitle className="text-xl font-medium">Bulk Ingest Resumes</DialogTitle>
           <DialogDescription>
@@ -316,14 +326,35 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
 
             {/* Dropzone */}
             <div
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                setIsDragging(false);
+              }}
               onDrop={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
                 if (e.dataTransfer.files) {
                   handleFilesChosen(e.dataTransfer.files);
                 }
               }}
-              className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 dark:border-neutral-700 p-10 text-center hover:border-slate-400 dark:hover:border-neutral-600 hover:bg-slate-50/50 dark:hover:bg-neutral-900/30 transition cursor-pointer"
+              className={cn(
+                "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition cursor-pointer",
+                isDragging
+                  ? "border-primary bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/20 scale-[1.01]"
+                  : "border-slate-300 dark:border-neutral-700 hover:border-slate-400 dark:hover:border-neutral-600 hover:bg-slate-50/50 dark:hover:bg-neutral-900/30"
+              )}
             >
               <input
                 type="file"
@@ -415,11 +446,11 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
             </div>
 
             {/* Editable Review Table */}
-            <div className="flex-1 min-h-[300px] max-h-[460px] overflow-auto rounded-md border border-slate-200 dark:border-neutral-800">
-              <Table>
+            <div className="flex-1 min-h-[300px] max-h-[500px] overflow-auto rounded-md border border-slate-200 dark:border-neutral-800">
+              <Table className="w-full min-w-[1100px]">
                 <TableHeader className="sticky top-0 bg-slate-50 dark:bg-neutral-900 z-10">
                   <TableRow>
-                    <TableHead className="w-10 text-center">
+                    <TableHead className="w-12 text-center">
                       <input
                         type="checkbox"
                         checked={selectedCount === items.length && items.length > 0}
@@ -427,11 +458,12 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
                         className="accent-theme rounded"
                       />
                     </TableHead>
-                    <TableHead className="w-44 text-xs font-medium">File Name</TableHead>
+                    <TableHead className="w-48 text-xs font-medium">File Name</TableHead>
                     <TableHead className="w-36 text-xs font-medium">First Name *</TableHead>
                     <TableHead className="w-36 text-xs font-medium">Last Name</TableHead>
                     <TableHead className="w-52 text-xs font-medium">Email *</TableHead>
                     <TableHead className="w-36 text-xs font-medium">Phone</TableHead>
+                    <TableHead className="w-44 text-xs font-medium">LinkedIn</TableHead>
                     <TableHead className="w-28 text-xs font-medium">Status</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
@@ -466,8 +498,8 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
                             className="accent-theme rounded"
                           />
                         </TableCell>
-                        <TableCell className="text-xs truncate max-w-[170px]" title={item.fileName}>
-                          <span className="font-medium text-slate-800 dark:text-neutral-200">
+                        <TableCell className="text-xs max-w-[200px]" title={item.fileName}>
+                          <span className="font-medium text-slate-800 dark:text-neutral-200 truncate block">
                             {item.fileName}
                           </span>
                         </TableCell>
@@ -512,6 +544,16 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
                               handleItemChange(item.id, "phone", e.target.value)
                             }
                             placeholder="Phone number"
+                            className="h-8 text-xs py-1"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={item.linkedinUrl}
+                            onChange={(e) =>
+                              handleItemChange(item.id, "linkedinUrl", e.target.value)
+                            }
+                            placeholder="LinkedIn URL"
                             className="h-8 text-xs py-1"
                           />
                         </TableCell>
