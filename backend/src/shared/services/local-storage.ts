@@ -13,7 +13,7 @@ import crypto from "node:crypto";
  */
 
 export const LOGO_NAME = /^[0-9a-f-]{36}\.(png|jpg|webp|svg)$/;
-const RESUME_KEY = /^resumes\/[0-9a-f-]{36}\.pdf$/;
+const RESUME_KEY = /^resumes\/[0-9a-f-]{36}\.(pdf|docx|doc)$/;
 
 export const LOGO_CONTENT_TYPES: Record<string, string> = {
   png: "image/png",

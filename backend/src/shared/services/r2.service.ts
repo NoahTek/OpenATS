@@ -98,9 +98,15 @@ export const r2Service = {
    * there is no URL for a CV, so there is no link that works without signing in.
    */
   async uploadResume(file: Express.Multer.File): Promise<string> {
-    const key = `resumes/${crypto.randomUUID()}.pdf`;
+    let ext = ".pdf";
+    if (file.originalname?.toLowerCase().endsWith(".docx") || file.mimetype.includes("wordprocessingml")) {
+      ext = ".docx";
+    } else if (file.originalname?.toLowerCase().endsWith(".doc") || file.mimetype.includes("msword")) {
+      ext = ".doc";
+    }
+    const key = `resumes/${crypto.randomUUID()}${ext}`;
     if (isLocal()) await localStorage.putResume(key, file.buffer);
-    else await put(privateBucket(), key, file, true);
+    else await put(privateBucket(), key, file, ext === ".pdf");
     return key;
   },
 

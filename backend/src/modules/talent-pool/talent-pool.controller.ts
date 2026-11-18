@@ -7,10 +7,12 @@ import { extractContacts } from "../candidate/cv-text/contacts";
 import { extractPdfText } from "../candidate/cv-text/extract-pdf";
 import { detectFileType } from "../candidate/cv-text/detect";
 import { resumeUploadService } from "../upload/resume-upload.service";
+import { resumeContentDisposition } from "../candidate/resume-filename";
 import { DuplicateApplicationError } from "../candidate/candidate.service";
 import { r2Service } from "../../shared/services/r2.service";
 import logger from "../../utils/logger";
 import { getErrorMessage } from "../../utils/error.utils";
+import { inferCandidateName, deduceNameFromFilename } from "./candidate-name";
 
 const createProfileSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(100),
@@ -189,66 +191,51 @@ export const deleteTalentPoolProfile = async (req: Request, res: Response) => {
   }
 };
 
-function inferCandidateName(text: string, filename?: string): { firstName: string; lastName: string } {
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
 
-  for (const line of lines.slice(0, 6)) {
-    if (line.includes("@") || line.includes("http") || line.length > 50 || line.length < 3) continue;
-    const cleanLine = line.replace(/^(name|candidate name|curriculum vitae|resume)\s*[:\-]\s*/i, "").trim();
-    const words = cleanLine.split(/\s+/);
-    if (words.length >= 2 && words.length <= 4 && words.every((w) => /^[\p{Lu}][\p{L}'-]*$/u.test(w))) {
-      return {
-        firstName: words[0] ?? "",
-        lastName: words.slice(1).join(" "),
-      };
-    }
-  }
 
-  if (filename) {
-    const cleanName = filename
-      .replace(/\.pdf$/i, "")
-      .replace(/[-_]?(resume|cv|curriculum[-_]?vitae)[-_]?/gi, "")
-      .replace(/[-_]+/g, " ")
-      .trim();
-    const parts = cleanName.split(/\s+/);
-    if (parts.length >= 2) {
-      return {
-        firstName: parts[0] ?? "",
-        lastName: parts.slice(1).join(" "),
-      };
-    }
-    if (parts.length === 1 && parts[0] && !parts[0].includes("@")) {
-      return {
-        firstName: parts[0],
-        lastName: "",
-      };
-    }
-  }
+import { extractCvText } from "../candidate/cv-text";
+import AdmZip from "adm-zip";
 
-  return { firstName: "", lastName: "" };
-}
+const bulkCreateProfileItemSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(100),
+  lastName: z.string().trim().max(100).default(""),
+  email: z.string().trim().email("Invalid email address").max(255),
+  phone: z.string().max(50).optional().nullable(),
+  linkedinUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .transform((val) => {
+      if (!val) return null;
+      if (!/^https?:\/\//i.test(val)) return `https://${val}`;
+      return val;
+    })
+    .pipe(z.string().url("Invalid LinkedIn URL").nullable())
+    .optional()
+    .nullable(),
+  source: z.string().max(100).optional().nullable(),
+  notes: z.string().optional().nullable(),
+  resumeUploadId: z.string().uuid().optional().nullable(),
+  updateIfDuplicate: z.boolean().optional().default(false),
+});
+
+const bulkCreateSchema = z.object({
+  profiles: z.array(bulkCreateProfileItemSchema).min(1, "At least one candidate profile is required"),
+  jobId: z.number().int().positive().optional().nullable(),
+});
 
 export const parseResumeForTalentPool = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
-      res.status(400).json({ error: "No PDF file uploaded" });
+      res.status(400).json({ error: "No resume file uploaded" });
       return;
     }
 
-    const isPdf =
-      req.file.mimetype === "application/pdf" ||
-      req.file.originalname.toLowerCase().endsWith(".pdf") ||
-      detectFileType(req.file.buffer) === "pdf";
-
-    if (!isPdf) {
-      res.status(400).json({ error: "Only PDF files are supported" });
+    const fileType = detectFileType(req.file.buffer);
+    if (!fileType) {
+      res.status(400).json({ error: "Only PDF, DOCX, and DOC files are supported" });
       return;
     }
-
-    req.file.mimetype = "application/pdf";
 
     // 1. Upload to storage and create uploadId
     const key = await r2Service.uploadResume(req.file);
@@ -257,13 +244,13 @@ export const parseResumeForTalentPool = async (req: Request, res: Response) => {
       throw error;
     });
 
-    // 2. Extract text from PDF
+    // 2. Extract text from resume
     let text = "";
     try {
-      const extracted = await extractPdfText(req.file.buffer);
-      text = cleanCvText(extracted.text);
+      const extracted = await extractCvText(req.file.buffer);
+      text = extracted.text;
     } catch (err) {
-      logger.warn(`Failed to extract text from uploaded PDF: ${getErrorMessage(err)}`);
+      logger.warn(`Failed to extract text from uploaded resume: ${getErrorMessage(err)}`);
     }
 
     // 3. Extract contacts and infer name
@@ -281,7 +268,7 @@ export const parseResumeForTalentPool = async (req: Request, res: Response) => {
         firstName: name.firstName,
         lastName: name.lastName,
         email: contacts.emails[0] ?? "",
-        phone: contacts.phones[0] ?? "",
+        phone: contacts.phones[0]?.replace(/\s+/g, " ").trim() ?? "",
         linkedinUrl: linkedinUrl
           ? linkedinUrl.startsWith("http")
             ? linkedinUrl
@@ -292,5 +279,268 @@ export const parseResumeForTalentPool = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error(`Failed to parse resume: ${getErrorMessage(error)}`);
     res.status(500).json({ error: "Failed to parse resume" });
+  }
+};
+
+interface ProcessedFileItem {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+}
+
+export const bulkParseResumes = async (req: Request, res: Response) => {
+  try {
+    const rawFiles = (req.files as Express.Multer.File[]) ?? [];
+    if (rawFiles.length === 0 && !req.file) {
+      res.status(400).json({ error: "No files or zip uploaded" });
+      return;
+    }
+
+    const allUploaded = req.file ? [req.file, ...rawFiles] : rawFiles;
+    const itemsToProcess: ProcessedFileItem[] = [];
+
+    for (const f of allUploaded) {
+      const isZip =
+        f.originalname.toLowerCase().endsWith(".zip") ||
+        f.mimetype === "application/zip" ||
+        f.mimetype === "application/x-zip-compressed" ||
+        (f.buffer.length > 4 && f.buffer[0] === 0x50 && f.buffer[1] === 0x4b && f.buffer[2] === 0x03 && f.buffer[3] === 0x04 && !f.buffer.includes("word/document.xml"));
+
+      if (isZip) {
+        try {
+          const zip = new AdmZip(f.buffer);
+          const zipEntries = zip.getEntries();
+          for (const entry of zipEntries) {
+            if (entry.isDirectory) continue;
+            const entryName = entry.entryName;
+            if (entryName.startsWith("__MACOSX") || entryName.includes("/.") || entryName.startsWith(".")) {
+              continue;
+            }
+            const lowerName = entryName.toLowerCase();
+            if (lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+              const entryBuffer = entry.getData();
+              const baseName = entryName.split("/").pop() || entryName;
+              itemsToProcess.push({
+                buffer: entryBuffer,
+                originalname: baseName,
+                mimetype: lowerName.endsWith(".pdf") ? "application/pdf" : "application/octet-stream",
+              });
+            }
+          }
+        } catch (zipErr) {
+          logger.warn(`Failed to decompress zip ${f.originalname}: ${getErrorMessage(zipErr)}`);
+        }
+      } else {
+        const lowerName = f.originalname.toLowerCase();
+        if (lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+          itemsToProcess.push({
+            buffer: f.buffer,
+            originalname: f.originalname,
+            mimetype: f.mimetype,
+          });
+        }
+      }
+    }
+
+    if (itemsToProcess.length === 0) {
+      res.status(400).json({ error: "No valid resume files found (supported: PDF, DOCX, DOC)" });
+      return;
+    }
+
+    // Process up to 50 items
+    const parsedResults: Array<{
+      id: string;
+      fileName: string;
+      uploadId: string | null;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      linkedinUrl: string;
+      status: "ready" | "duplicate" | "missing_email" | "error";
+      errorMessage?: string;
+    }> = [];
+
+    const foundEmails: string[] = [];
+
+    for (let i = 0; i < itemsToProcess.length; i++) {
+      const item = itemsToProcess[i]!;
+      const rowId = `item-${i}-${Date.now()}`;
+
+      try {
+        const fileType = detectFileType(item.buffer);
+        if (!fileType) {
+          parsedResults.push({
+            id: rowId,
+            fileName: item.originalname,
+            uploadId: null,
+            firstName: "",
+            lastName: "",
+            email: "",
+            phone: "",
+            linkedinUrl: "",
+            status: "error",
+            errorMessage: "Unsupported document format",
+          });
+          continue;
+        }
+
+        // Upload resume to R2
+        const multerLike: Express.Multer.File = {
+          buffer: item.buffer,
+          originalname: item.originalname,
+          mimetype: item.mimetype,
+          fieldname: "file",
+          encoding: "7bit",
+          size: item.buffer.length,
+          stream: null as any,
+          destination: "",
+          filename: item.originalname,
+          path: "",
+        };
+
+        const key = await r2Service.uploadResume(multerLike);
+        const uploadId = await resumeUploadService.create(key).catch(async (error) => {
+          await r2Service.deleteResume(key).catch(() => undefined);
+          throw error;
+        });
+
+        // Extract CV text
+        let text = "";
+        try {
+          const cvResult = await extractCvText(item.buffer);
+          text = cvResult.text;
+        } catch (err) {
+          logger.warn(`Failed to extract text from ${item.originalname}: ${getErrorMessage(err)}`);
+        }
+
+        const sections = splitSections(text);
+        const contacts = extractContacts(text, sections);
+        const name = inferCandidateName(text, item.originalname);
+
+        const email = contacts.emails[0]?.trim().toLowerCase() ?? "";
+        if (email) foundEmails.push(email);
+
+        const linkedinUrl = contacts.links.find(
+          (l) => l.includes("linkedin.com") || l.startsWith("linkedin.com"),
+        );
+
+        const fallback = deduceNameFromFilename(item.originalname);
+        parsedResults.push({
+          id: rowId,
+          fileName: item.originalname,
+          uploadId,
+          firstName: name.firstName || fallback.firstName || "Candidate",
+          lastName: name.firstName ? name.lastName : fallback.lastName,
+          email,
+          phone: contacts.phones[0]?.replace(/\s+/g, " ").trim() ?? "",
+          linkedinUrl: linkedinUrl
+            ? linkedinUrl.startsWith("http")
+              ? linkedinUrl
+              : `https://${linkedinUrl}`
+            : "",
+          status: email ? "ready" : "missing_email",
+        });
+      } catch (err) {
+        logger.error(`Bulk parse error for ${item.originalname}: ${getErrorMessage(err)}`);
+        parsedResults.push({
+          id: rowId,
+          fileName: item.originalname,
+          uploadId: null,
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          linkedinUrl: "",
+          status: "error",
+          errorMessage: getErrorMessage(err),
+        });
+      }
+    }
+
+    // Check existing emails in database
+    const existingEmails = await talentPoolService.checkExistingEmails(foundEmails);
+
+    // Update status to duplicate if already exists in talent pool
+    for (const r of parsedResults) {
+      if (r.status === "ready" && existingEmails.has(r.email.toLowerCase())) {
+        r.status = "duplicate";
+      }
+    }
+
+    res.status(200).json({ data: parsedResults });
+  } catch (error) {
+    logger.error(`Failed to bulk parse resumes: ${getErrorMessage(error)}`);
+    res.status(500).json({ error: "Failed to bulk parse resumes" });
+  }
+};
+
+export const bulkCreateTalentPoolProfiles = async (req: Request, res: Response) => {
+  try {
+    const validated = bulkCreateSchema.parse(req.body);
+    const userId = req.user?.id ? Number(req.user.id) : null;
+
+    const profilesWithUser = validated.profiles.map((p) => ({
+      ...p,
+      createdBy: userId,
+    }));
+
+    const result = await talentPoolService.bulkCreateProfiles(
+      profilesWithUser,
+      validated.jobId ?? undefined,
+    );
+
+    res.status(201).json({
+      message: `Bulk ingest complete: ${result.created} created, ${result.updated} updated, ${result.submitted} submitted to job`,
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: error.issues[0]?.message ?? "Invalid input" });
+      return;
+    }
+    logger.error(`Failed to bulk create profiles: ${getErrorMessage(error)}`);
+    res.status(500).json({ error: "Failed to ingest candidate profiles" });
+  }
+};
+
+export const getTalentPoolProfileResume = async (req: Request, res: Response) => {
+  try {
+    const id = parseInt((req.params.id ?? "").toString());
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid profile ID" });
+      return;
+    }
+
+    const file = await talentPoolService.getResumeFile(id);
+    const resume = file ? await r2Service.getResume(file.resumeKey) : null;
+    if (!file || !resume) {
+      res.status(404).json({ error: "Resume not found" });
+      return;
+    }
+
+    let contentType = "application/pdf";
+    let ext = "pdf";
+    const lowerKey = file.resumeKey.toLowerCase();
+    if (lowerKey.endsWith(".docx")) {
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      ext = "docx";
+    } else if (lowerKey.endsWith(".doc")) {
+      contentType = "application/msword";
+      ext = "doc";
+    }
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      resumeContentDisposition(file.firstName, file.lastName, ext),
+    );
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(resume);
+  } catch (error) {
+    logger.error(
+      `Failed to stream talent pool resume id=${req.params.id}: ${getErrorMessage(error)}`,
+    );
+    res.status(500).json({ error: "Failed to load resume" });
   }
 };

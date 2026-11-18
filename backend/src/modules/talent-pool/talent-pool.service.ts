@@ -278,4 +278,120 @@ export const talentPoolService = {
 
     return true;
   },
+
+  /**
+   * Get resume file info for a talent pool profile.
+   */
+  async getResumeFile(id: number) {
+    const [profile] = await db
+      .select({
+        id: candidateProfiles.id,
+        resumeKey: candidateProfiles.resumeKey,
+        firstName: candidateProfiles.firstName,
+        lastName: candidateProfiles.lastName,
+      })
+      .from(candidateProfiles)
+      .where(eq(candidateProfiles.id, id));
+
+    return profile?.resumeKey ? profile : null;
+  },
+
+  /**
+   * Check which emails from a given list already exist in the talent pool
+   */
+  async checkExistingEmails(emails: string[]): Promise<Set<string>> {
+    if (emails.length === 0) return new Set();
+    const normalized = emails.map((e) => e.trim().toLowerCase());
+    const existing = await db
+      .select({ email: candidateProfiles.email })
+      .from(candidateProfiles)
+      .where(sql`lower(${candidateProfiles.email}) in ${normalized}`);
+
+    return new Set(existing.map((r) => r.email.toLowerCase()));
+  },
+
+  /**
+   * Bulk create profiles in the talent pool, optionally submitting each to a job
+   */
+  async bulkCreateProfiles(
+    profiles: Array<CreateTalentPoolProfileInput & { updateIfDuplicate?: boolean }>,
+    jobId?: number,
+  ): Promise<{
+    created: number;
+    updated: number;
+    submitted: number;
+    errors: Array<{ email: string; error: string }>;
+  }> {
+    let createdCount = 0;
+    let updatedCount = 0;
+    let submittedCount = 0;
+    const errors: Array<{ email: string; error: string }> = [];
+
+    for (const item of profiles) {
+      const email = item.email.trim().toLowerCase();
+      try {
+        const [existing] = await db
+          .select({ id: candidateProfiles.id, resumeKey: candidateProfiles.resumeKey })
+          .from(candidateProfiles)
+          .where(eq(candidateProfiles.email, email))
+          .limit(1);
+
+        let profileId: number;
+
+        if (existing) {
+          if (item.updateIfDuplicate) {
+            let newResumeKey: string | null = null;
+            if (item.resumeUploadId) {
+              newResumeKey = await resumeUploadService.claim(item.resumeUploadId);
+            }
+            await db
+              .update(candidateProfiles)
+              .set(
+                clean({
+                  firstName: item.firstName,
+                  lastName: item.lastName,
+                  phone: item.phone,
+                  linkedinUrl: item.linkedinUrl,
+                  source: item.source,
+                  notes: item.notes,
+                  resumeKey: newResumeKey ?? undefined,
+                  updatedAt: new Date(),
+                }),
+              )
+              .where(eq(candidateProfiles.id, existing.id));
+
+            profileId = existing.id;
+            updatedCount++;
+          } else {
+            // Skipped as duplicate
+            continue;
+          }
+        } else {
+          const newProfile = await this.createProfile(item);
+          profileId = newProfile.id;
+          createdCount++;
+        }
+
+        // If a target job was requested, submit candidate to the job
+        if (jobId) {
+          try {
+            await this.submitToJob({ profileId, jobId });
+            submittedCount++;
+          } catch (subErr) {
+            logger.warn(`Failed to submit bulk profile ${email} to job ${jobId}: ${(subErr as Error).message}`);
+          }
+        }
+      } catch (err) {
+        logger.error(`Failed to ingest profile ${email}: ${(err as Error).message}`);
+        errors.push({ email, error: (err as Error).message });
+      }
+    }
+
+    return {
+      created: createdCount,
+      updated: updatedCount,
+      submitted: submittedCount,
+      errors,
+    };
+  },
 };

@@ -50,9 +50,13 @@ import {
   FileUploadIcon,
   Cancel01Icon,
   Tick02Icon,
+  FolderUploadIcon,
+  File01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Spinner } from "@/components/ui/spinner";
+import { BulkIngestModal } from "./_components/bulk-ingest-modal";
+import { TalentPoolCvSheet } from "./_components/talent-pool-cv-sheet";
 
 export default function TalentPoolPage() {
   const [search, setSearch] = useState("");
@@ -97,6 +101,7 @@ export default function TalentPoolPage() {
   const profiles = data?.data ?? [];
 
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isBulkIngestOpen, setIsBulkIngestOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -109,6 +114,8 @@ export default function TalentPoolPage() {
   const [isParsingResume, setIsParsingResume] = useState(false);
 
   const [editingProfile, setEditingProfile] = useState<TalentPoolProfile | null>(null);
+  const [viewCvProfile, setViewCvProfile] = useState<TalentPoolProfile | null>(null);
+  const [isCvOpen, setIsCvOpen] = useState(false);
 
   const [submitProfile, setSubmitProfile] = useState<TalentPoolProfile | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
@@ -136,8 +143,9 @@ export default function TalentPoolPage() {
   const handleResumeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      toast.error("Please upload a PDF file");
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".pdf") && !name.endsWith(".docx") && !name.endsWith(".doc")) {
+      toast.error("Please upload a PDF or Word document (.docx, .doc)");
       return;
     }
 
@@ -283,10 +291,20 @@ export default function TalentPoolPage() {
                 Manage your agency&apos;s candidate bench, parse resumes with auto-fill, and submit candidates across client jobs.
               </p>
             </div>
-            <Button onClick={handleOpenAdd} className="gap-2">
-              <HugeiconsIcon icon={Add01Icon} className="size-4" />
-              Add Candidate
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsBulkIngestOpen(true)}
+                className="gap-2"
+              >
+                <HugeiconsIcon icon={FolderUploadIcon} className="size-4" />
+                Bulk Ingest
+              </Button>
+              <Button onClick={handleOpenAdd} className="gap-2">
+                <HugeiconsIcon icon={Add01Icon} className="size-4" />
+                Add Candidate
+              </Button>
+            </div>
           </header>
 
           {/* Search bar */}
@@ -388,6 +406,32 @@ export default function TalentPoolPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
+                        {profile.hasResume ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setViewCvProfile(profile);
+                              setIsCvOpen(true);
+                            }}
+                            className="h-8 gap-1.5 text-xs text-slate-700 dark:text-neutral-300 hover:text-slate-900"
+                            title="View candidate CV"
+                          >
+                            <HugeiconsIcon icon={File01Icon} className="size-3.5" />
+                            View CV
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled
+                            className="h-8 gap-1.5 text-xs text-slate-400 opacity-60 cursor-not-allowed"
+                            title="No CV uploaded"
+                          >
+                            <HugeiconsIcon icon={File01Icon} className="size-3.5" />
+                            No CV
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -488,14 +532,14 @@ export default function TalentPoolPage() {
                     <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-800/80 p-3 text-center hover:bg-slate-50 dark:hover:bg-neutral-800 transition">
                       <HugeiconsIcon icon={FileUploadIcon} className="size-5 text-slate-400 mb-1" />
                       <span className="text-xs font-medium text-slate-700 dark:text-neutral-300">
-                        Upload PDF resume to auto-fill details
+                        Upload resume (PDF, Word) to auto-fill details
                       </span>
                       <span className="text-[11px] text-slate-400 mt-0.5">
                         Extracts name, email, phone & LinkedIn automatically
                       </span>
                       <input
                         type="file"
-                        accept=".pdf,application/pdf"
+                        accept=".pdf,.docx,.doc,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         className="hidden"
                         onChange={handleResumeFileSelect}
                       />
@@ -749,6 +793,21 @@ export default function TalentPoolPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Ingest Modal */}
+      <BulkIngestModal
+        open={isBulkIngestOpen}
+        onOpenChange={setIsBulkIngestOpen}
+        jobs={sortedPublishedJobs}
+        clients={sortedClients}
+      />
+
+      {/* View CV Sheet */}
+      <TalentPoolCvSheet
+        open={isCvOpen}
+        onOpenChange={setIsCvOpen}
+        profile={viewCvProfile}
+      />
     </div>
   );
 }
