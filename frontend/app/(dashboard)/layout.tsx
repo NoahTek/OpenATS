@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeaderServer } from "@/components/layout/site-header-server";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -24,13 +25,25 @@ export default async function DashboardLayout({
 
   const socketToken = (await getApiToken()) ?? undefined;
 
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  const rawCollapseMode = cookieStore.get("sidebar_collapse_mode")?.value;
+  const defaultCollapseMode =
+    rawCollapseMode === "offcanvas" || rawCollapseMode === "icon"
+      ? rawCollapseMode
+      : "icon";
+
   return (
     <QueryProvider>
       <SocketAuthProvider token={socketToken}>
         <DashboardPrefetch />
         <CandidateSocketListener />
         <div className="[--header-height:calc(--spacing(14))]">
-          <SidebarProvider className="flex flex-col">
+          <SidebarProvider
+            defaultOpen={defaultOpen}
+            defaultCollapseMode={defaultCollapseMode}
+            className="flex flex-col"
+          >
             <SiteHeaderServer />
             <div className="flex flex-1 min-w-0 overflow-x-hidden w-full">
               <AppSidebar />

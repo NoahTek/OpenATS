@@ -39,7 +39,7 @@ export function SidebarUserMenu({
   variant = "header",
 }: SidebarUserMenuProps) {
   const router = useRouter();
-  const { state } = useSidebar();
+  const { state, collapseMode, setCollapseMode } = useSidebar();
   const queryClient = useQueryClient();
   const [confirmLogoutOpen, setConfirmLogoutOpen] = React.useState(false);
 
@@ -140,6 +140,52 @@ export function SidebarUserMenu({
         >
           <span className="text-sm text-popover-foreground">Theme</span>
           <ThemeSwitch />
+        </div>
+
+        <div
+          className="flex min-h-10 items-center justify-between gap-2 border-b border-border px-3 py-2.5"
+          onPointerDown={(e) => e.preventDefault()}
+        >
+          <div className="flex flex-col pr-1">
+            <span className="text-sm text-popover-foreground">Sidebar collapse</span>
+            <span className="text-[11px] text-muted-foreground">
+              {collapseMode === "icon" ? "Shrinks to icon rail" : "Hides off-screen"}
+            </span>
+          </div>
+          <div
+            role="group"
+            aria-label="Sidebar collapse mode"
+            className="flex h-8 shrink-0 items-center rounded-full border border-border bg-muted/60 p-0.5 dark:bg-muted/40"
+          >
+            <button
+              type="button"
+              title="Collapse to icon rail"
+              aria-pressed={collapseMode === "icon"}
+              onClick={() => setCollapseMode("icon")}
+              className={cn(
+                "px-2.5 py-1 text-xs font-medium rounded-full cursor-pointer transition-colors",
+                collapseMode === "icon"
+                  ? "bg-background text-foreground shadow-sm font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Icons
+            </button>
+            <button
+              type="button"
+              title="Collapse completely off-canvas"
+              aria-pressed={collapseMode === "offcanvas"}
+              onClick={() => setCollapseMode("offcanvas")}
+              className={cn(
+                "px-2.5 py-1 text-xs font-medium rounded-full cursor-pointer transition-colors",
+                collapseMode === "offcanvas"
+                  ? "bg-background text-foreground shadow-sm font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Off-canvas
+            </button>
+          </div>
         </div>
 
         <div className="p-1">
