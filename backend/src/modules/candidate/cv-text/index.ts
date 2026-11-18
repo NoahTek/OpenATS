@@ -28,24 +28,29 @@ export interface ExtractedCv {
   profile: CvProfile | null;
 }
 
+import { extractWordText } from "./extract-word";
+
 /** Reads the text of a CV. Nothing leaves the server. */
 export async function extractCvText(file: Buffer): Promise<ExtractedCv> {
   const fileType = detectFileType(file);
-  if (fileType !== "pdf") {
-    throw new UnreadableCvError(
-      fileType === "docx" ? "Word files are not supported yet" : "The file is not a PDF",
-    );
+  if (!fileType) {
+    throw new UnreadableCvError("Unsupported file type. Only PDF, DOCX, and DOC are supported.");
   }
 
   let extracted: { text: string; pageCount: number };
   try {
-    extracted = await extractPdfText(file);
+    if (fileType === "pdf") {
+      extracted = await extractPdfText(file);
+    } else {
+      extracted = await extractWordText(file, fileType);
+    }
   } catch (error) {
+    if (error instanceof UnreadableCvError) throw error;
     // PDF.js names its errors: a password-protected or damaged file will never parse.
     const name = error instanceof Error ? error.name : "";
     if (name === "PasswordException") throw new UnreadableCvError("The PDF is password protected");
     if (name === "InvalidPDFException") throw new UnreadableCvError("The PDF is damaged");
-    throw error;
+    throw new UnreadableCvError(`Failed to read document: ${(error as Error).message}`);
   }
 
   const text = cleanCvText(extracted.text);

@@ -141,3 +141,44 @@ export function useDeleteTalentPoolProfile() {
     },
   });
 }
+
+export interface BulkCandidateInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  linkedinUrl?: string | null;
+  source?: string | null;
+  notes?: string | null;
+  resumeUploadId?: string | null;
+  updateIfDuplicate?: boolean;
+}
+
+export function useBulkCreateTalentPoolProfiles() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      profiles,
+      jobId,
+    }: {
+      profiles: BulkCandidateInput[];
+      jobId?: number | null;
+    }) =>
+      clientFetch<{
+        message: string;
+        data: {
+          created: number;
+          updated: number;
+          submitted: number;
+          errors: Array<{ email: string; error: string }>;
+        };
+      }>("/talent-pool/bulk-create", {
+        method: "POST",
+        body: JSON.stringify({ profiles, jobId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["talent-pool"] });
+      queryClient.invalidateQueries({ queryKey: ["candidates"] });
+    },
+  });
+}

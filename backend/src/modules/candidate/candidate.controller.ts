@@ -399,10 +399,21 @@ export const getCandidateResume = async (req: Request, res: Response) => {
       return;
     }
 
-    res.setHeader("Content-Type", "application/pdf");
+    let contentType = "application/pdf";
+    let ext = "pdf";
+    const lowerKey = file.resumeKey.toLowerCase();
+    if (lowerKey.endsWith(".docx")) {
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      ext = "docx";
+    } else if (lowerKey.endsWith(".doc")) {
+      contentType = "application/msword";
+      ext = "doc";
+    }
+
+    res.setHeader("Content-Type", contentType);
     res.setHeader(
       "Content-Disposition",
-      resumeContentDisposition(file.firstName, file.lastName),
+      resumeContentDisposition(file.firstName, file.lastName, ext),
     );
     res.setHeader("Cache-Control", "private, max-age=300");
     res.send(resume);

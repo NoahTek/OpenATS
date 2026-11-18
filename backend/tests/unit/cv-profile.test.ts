@@ -201,6 +201,28 @@ describe("extractContacts", () => {
     expect(contacts.phones).toEqual(["0712345678"]);
     expect(extractContacts(NURSE_CV, splitSections(NURSE_CV)).phones).not.toContain("45821");
   });
+
+  it("recovers spaced emails and normalizes domain typos", () => {
+    const spaced = `
+Kumar Jagtap
+Phonenumber : 8 8 8 8 5 8 5 6 9 5
+Emailaddress :
+kumarjagtap 8 8 8 8 @ gmail . c o m
+`;
+    const c1 = extractContacts(spaced, splitSections(spaced));
+    expect(c1.emails).toEqual(["kumarjagtap8888@gmail.com"]);
+    expect(c1.phones).toEqual(["8888585695"]);
+
+    const typo = "Chandan Zulya\n9049210747\nChandan.zulya14@giail.coi";
+    const c2 = extractContacts(typo, splitSections(typo));
+    expect(c2.emails).toEqual(["chandan.zulya14@gmail.com"]);
+  });
+
+  it("does not span phone matching across newlines into address digits", () => {
+    const text = "BALAKUMAR.S\n+91-8248420367\n\n10/8, 6TH STREET";
+    const contacts = extractContacts(text, splitSections(text));
+    expect(contacts.phones).toEqual(["+91-8248420367"]);
+  });
 });
 
 describe("buildCvProfile", () => {
