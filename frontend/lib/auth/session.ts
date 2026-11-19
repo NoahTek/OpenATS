@@ -20,6 +20,19 @@ export const getApiToken = cache(async (): Promise<string | null> => {
   } catch (error) {
     // No session is fine, other errors are not
     if (error instanceof APIError && error.statusCode === 401) return null;
+
+    // If JWKS decryption fails at runtime, self-heal and retry once
+    if (error instanceof Error && error.message.includes("Failed to decrypt private key")) {
+      try {
+        const { ensureJwksIntegrity } = await import("./jwks");
+        await ensureJwksIntegrity();
+        const { token } = await auth.api.getToken({ headers: await headers() });
+        return token;
+      } catch {
+        return null;
+      }
+    }
+
     throw error;
   }
 });
