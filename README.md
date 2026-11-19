@@ -82,10 +82,27 @@ One pnpm workspace with two packages, `frontend` and `backend`, installed from t
 
 ## Getting started
 
-You need Node.js 24+, Docker, pnpm (`npm install -g pnpm`), `make` and `openssl`.
+### Quick Start with Docker (Recommended)
+
+Run OpenATS with a single command on any machine with Docker:
+
+1. Download [`docker-compose.yml`](./docker-compose.yml) into an empty directory.
+2. Run:
+   ```sh
+   docker compose up -d
+   ```
+3. Open http://localhost:3000 to sign in. The initial admin password is displayed in the terminal output or viewable anytime with:
+   ```sh
+   docker compose logs admin
+   ```
+Emails are captured locally at http://localhost:8025.
+
+### Development from Source
+
+To run directly from source, you need Node.js 24+, Docker, pnpm (`npm install -g pnpm`), `make` and `openssl`.
 
 ```sh
-git clone https://github.com/chamals3n4/OpenATS.git && cd OpenATS
+git clone https://github.com/NoahTek/OpenATS.git && cd OpenATS
 
 make setup   # installs, creates both .env files, starts Postgres and Redis,
              # runs migrations, seeds the pipeline stages, creates your first admin
