@@ -112,12 +112,7 @@ services:
       - |
         set -e
         . /config/env
-        node frontend/scripts/create-admin.cjs --if-none --email admin@example.com --first-name Admin --last-name User
-        echo ""
-        echo "  OpenATS is starting at http://localhost:3000"
-        echo "  Sign in with admin@example.com and the password: $$OPENATS_ADMIN_PASSWORD"
-        echo "  (that is the first password; change it in Settings. Emails: http://localhost:8025)"
-        echo ""
+        exec node frontend/scripts/create-admin.cjs --if-none --email admin@example.com --first-name Admin --last-name User
     depends_on:
       setup: { condition: service_completed_successfully }
 

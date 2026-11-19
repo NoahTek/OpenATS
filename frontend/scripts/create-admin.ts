@@ -120,11 +120,24 @@ async function main() {
     );
   }
 
+  const { ensureJwksIntegrity } = await import("../lib/auth/jwks");
+  await ensureJwksIntegrity();
+
   if (parseArgs({ options: { "if-none": { type: "boolean" } }, strict: false }).values["if-none"]) {
     const { pool } = await import("../lib/auth/db");
-    const admins = await pool.query("select 1 from users where role = 'super_admin' limit 1");
+    const admins = await pool.query<{ email: string }>(
+      "select email from users where role = 'super_admin' order by id asc limit 1",
+    );
     if (admins.rows.length > 0) {
-      console.log("A super admin already exists, so none was created.");
+      const existingEmail = admins.rows[0].email;
+      console.log(`
+=================================================================
+  OpenATS is ready at http://localhost:3000
+  Super admin account already exists: ${existingEmail}
+  Sign in with your existing credentials.
+  (To reset password: make admin or run create-admin without --if-none)
+=================================================================
+`);
       await pool.end();
       return;
     }
@@ -164,7 +177,14 @@ async function main() {
         },
       });
 
-      console.log(`\nCreated super admin ${email} (user id ${user.id}).`);
+      console.log(`
+=================================================================
+  OpenATS is ready at http://localhost:3000
+  Sign in with: ${email}
+  Password:     ${password}
+  (Emails are captured at: http://localhost:8025)
+=================================================================
+`);
       return;
     }
 
@@ -198,9 +218,14 @@ async function main() {
     // Sign out old sessions after the password changes
     await ctx.internalAdapter.deleteUserSessions(userId);
 
-    console.log(
-      `\nUpdated ${email} (user id ${userId}): role set to super_admin, account active, password set.`,
-    );
+    console.log(`
+=================================================================
+  OpenATS is ready at http://localhost:3000
+  Updated super admin: ${email} (user id ${userId})
+  Sign in with: ${email}
+  Password:     ${password}
+=================================================================
+`);
   } finally {
     await pool.end();
   }
