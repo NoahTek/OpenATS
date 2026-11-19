@@ -8,7 +8,7 @@ vi.mock("jose", async (importOriginal) => {
   return { ...actual, createRemoteJWKSet: () => async () => jwks.publicKey };
 });
 
-const requestResumeDeletion = vi.fn(async () => undefined);
+const requestResumeDeletion = vi.fn(async (_keys: Array<string | null | undefined>) => undefined);
 vi.mock("../../src/queues/resume-delete/queue", () => ({
   requestResumeDeletion: (keys: Array<string | null | undefined>) => requestResumeDeletion(keys),
 }));
@@ -28,7 +28,6 @@ let interviewerAuth: string;
 const userIds: number[] = [];
 let companyId: number;
 let jobId: number;
-let stageId: number;
 let createdProfileId: number;
 
 const api = (auth: string) => ({
@@ -68,15 +67,13 @@ beforeAll(async () => {
 
   await db.insert(jobHiringTeam).values({ jobId, userId: mgr.user.id });
 
-  const [st] = await db
+  await db
     .insert(jobPipelineStages)
     .values({
       jobId,
       name: "Applied",
       position: 1,
-    })
-    .returning();
-  stageId = st!.id;
+    });
 });
 
 afterAll(async () => {

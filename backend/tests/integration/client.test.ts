@@ -10,7 +10,7 @@ vi.mock("jose", async (importOriginal) => {
 
 import app from "../../src/app";
 import { db } from "../../src/db";
-import { clients, departments } from "../../src/db/schema/company";
+import { clients } from "../../src/db/schema/company";
 import { users } from "../../src/db/schema/users";
 import { initTestKeys, bearer } from "../helpers/jwt";
 
