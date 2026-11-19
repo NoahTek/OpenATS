@@ -1,10 +1,8 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { talentPoolService } from "./talent-pool.service";
-import { cleanCvText } from "../candidate/cv-text/clean";
 import { splitSections } from "../candidate/cv-text/sections";
 import { extractContacts } from "../candidate/cv-text/contacts";
-import { extractPdfText } from "../candidate/cv-text/extract-pdf";
 import { detectFileType } from "../candidate/cv-text/detect";
 import { resumeUploadService } from "../upload/resume-upload.service";
 import { resumeContentDisposition } from "../candidate/resume-filename";
@@ -393,7 +391,7 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
           fieldname: "file",
           encoding: "7bit",
           size: item.buffer.length,
-          stream: null as any,
+          stream: null as unknown as Express.Multer.File["stream"],
           destination: "",
           filename: item.originalname,
           path: "",

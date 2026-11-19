@@ -112,7 +112,7 @@ const DISALLOWED_NAME_WORDS = new Set([
 ]);
 
 const NAME_PREFIX_REGEX =
-  /^\s*(?:name|candidate\s*name|full\s*name)\s*[:\-]\s*([^\n\r,;]{2,50})/i;
+  /^\s*(?:name|candidate\s*name|full\s*name)\s*[-:]\s*([^\n\r,;]{2,50})/i;
 
 const TITLE_PREFIX_REGEX = /^(?:mr|mrs|ms|dr|prof)\.?\s+/i;
 
@@ -206,9 +206,9 @@ export function cleanCandidateName(raw: string): string {
     if (/\d/.test(w)) break;
 
     // Strip punctuation at edges, preserving trailing dot for single-letter initials (e.g. "S.")
-    let cleanWord = w.replace(/[^a-zA-Z\s.\-]/g, "").replace(/^[.\-–—:•*"'|#]+/, "");
+    let cleanWord = w.replace(/[^a-zA-Z\s.-]/g, "").replace(/^[-.–—:•*"'|#]+/, "");
     if (!(cleanWord.length === 2 && cleanWord.endsWith("."))) {
-      cleanWord = cleanWord.replace(/[.\-–—:•*"'|#]+$/, "");
+      cleanWord = cleanWord.replace(/[-.–—:•*"'|#]+$/, "");
     }
     if (!cleanWord || cleanWord === "-" || cleanWord === "–" || cleanWord === "—") continue;
 

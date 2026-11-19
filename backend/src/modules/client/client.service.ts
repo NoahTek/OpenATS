@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db";
-import { clients, departments, type Client, type NewClient } from "../../db/schema/company";
+import { clients, departments, type Client } from "../../db/schema/company";
 
 export type CreateClientInput = {
   name: string;

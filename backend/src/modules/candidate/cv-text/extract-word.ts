@@ -1,7 +1,6 @@
 import mammoth from "mammoth";
 import WordExtractor from "word-extractor";
 import sanitizeHtml from "sanitize-html";
-import type { CvFileType } from "./detect";
 import logger from "../../../utils/logger";
 
 const wordExtractor = new WordExtractor();

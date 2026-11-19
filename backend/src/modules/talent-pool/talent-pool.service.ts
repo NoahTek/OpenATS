@@ -1,14 +1,12 @@
-import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "../../db";
 import {
   candidateProfiles,
   candidates,
   jobPipelineStages,
   jobs,
-  type CandidateProfile,
 } from "../../db/schema";
 import { candidateService } from "../candidate/candidate.service";
-import { cvMatches, cvExperienceAtLeast } from "../candidate/cv-text.service";
 import { resumeUploadService } from "../upload/resume-upload.service";
 import { requestResumeDeletion } from "../../queues/resume-delete/queue";
 import logger from "../../utils/logger";
