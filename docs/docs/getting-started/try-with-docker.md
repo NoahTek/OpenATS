@@ -13,8 +13,18 @@ You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Do
 
 ## Start it
 
+### Option A: Using the compose file
+
+Download `docker-compose.yml` into a new folder and run:
+
 ```bash
-docker compose -f oci://ghcr.io/chamals3n4/openats-quickstart:latest up
+docker compose up -d
+```
+
+### Option B: Using the OCI quickstart
+
+```bash
+docker compose -f oci://ghcr.io/noahtek/openats-quickstart:latest up
 ```
 
 The first start downloads the images and gets the database ready, which takes a minute or two. When it is ready you'll see:

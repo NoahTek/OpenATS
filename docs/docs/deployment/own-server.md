@@ -7,9 +7,9 @@ keywords: [deploy applicant tracking system, self-host OpenATS, ATS production s
 
 # Deploy OpenATS on Your Own Server
 
-This guide puts OpenATS on one server you control, such as a VPS from DigitalOcean, Hetzner or AWS. One server is plenty for most teams. If you would rather not manage a server, see [Deploy on Render](./render). If you haven't tried OpenATS yet, run it on your own computer with the [Quick Start](../getting-started/make-setup) first.
+This guide puts OpenATS on one server you control, such as a VPS from DigitalOcean, Hetzner or AWS. One server is plenty for most teams. If you would rather not manage a server, see [Deploy on Render](./render). If you prefer running with Docker Compose, see [Docker Compose Deployment](./#docker-compose-self-hosted).
 
-There's no official Docker image for the app yet, so you'll build it from the source code.
+To build and run directly from the source code without Docker, follow the steps below.
 
 ## What you're setting up
 
@@ -42,7 +42,7 @@ You'll need Node.js 24, pnpm, Git, and a web server such as Nginx. Then point tw
 ## 2. Download and configure
 
 ```sh
-git clone https://github.com/chamals3n4/OpenATS.git
+git clone https://github.com/NoahTek/OpenATS.git
 cd OpenATS
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env

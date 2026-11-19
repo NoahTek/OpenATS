@@ -1,38 +1,193 @@
+# OpenATS: Self-hosted Applicant Tracking System
+#
+# Quick setup:
+#   1. Put this docker-compose.yml in an empty directory (e.g. OpenATS).
+#   2. Run:
+#        docker compose up
+#      (or `docker compose up -d` to run in the background)
+#   3. Open http://localhost:3000 in your browser.
+#      The admin email and password will be displayed in the terminal output.
+#      If running in the background, view them anytime with:
+#        docker compose logs admin
+#
+# Emails (invites, password resets, candidate notices) are caught locally by Mailpit at:
+#   http://localhost:8025
+#
+# Stop OpenATS:
+#   docker compose down
+# (All jobs, candidates, CVs, and accounts persist in Docker volumes).
+
 name: openats
+
+x-backend: &backend
+  image: ${OPENATS_BACKEND_IMAGE:-ghcr.io/noahtek/openats-backend:${OPENATS_VERSION:-latest}}
+  restart: unless-stopped
+  environment: &backend-env
+    DATABASE_URL: postgresql://openats:openats@postgres:5432/openats
+    REDIS_URL: redis://redis:6379
+    FRONTEND_URL: http://localhost:3000
+    API_PUBLIC_URL: http://localhost:8080
+    AUTH_JWKS_URL: http://web:3000/api/auth/jwks
+    AUTH_ISSUER: http://localhost:3000
+    TRUST_PROXY: "false"
+    STORAGE: local
+    SMTP_HOST: mailpit
+    SMTP_PORT: "1025"
+    SMTP_SECURE: "false"
+    SMTP_REQUIRE_TLS: "false"
+    MAIL_FROM: hiring@example.com
+    MAIL_FROM_NAME: OpenATS
+  volumes:
+    - config:/config:ro
+    - files:/data
 
 services:
   postgres:
     image: postgres:17
     container_name: openats-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: openats
       POSTGRES_PASSWORD: openats
       POSTGRES_DB: openats
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openats -d openats"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
 
   redis:
     image: redis:7-alpine
     container_name: openats-redis
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
 
-  # Catches every email the app sends; open the inbox at http://localhost:8025
   mailpit:
     image: axllent/mailpit:v1.31.4
     container_name: openats-mailpit
-    ports:
-      # Only this machine: the inbox has no sign-in and holds password reset links
-      - "127.0.0.1:1025:1025"
-      - "127.0.0.1:8025:8025"
     restart: unless-stopped
+    ports:
+      - "${MAILPIT_BIND_IP:-127.0.0.1}:${MAILPIT_PORT:-8025}:8025"
+
+  # One-time generation of encryption keys & admin credentials stored in the config volume
+  config:
+    image: ${OPENATS_BACKEND_IMAGE:-ghcr.io/noahtek/openats-backend:${OPENATS_VERSION:-latest}}
+    user: "0"
+    volumes:
+      - config:/config
+    environment:
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ ! -f /config/env ]; then
+          node -e '
+            const r = (n) => require("crypto").randomBytes(n).toString("base64");
+            const p = process.env.ADMIN_PASSWORD || require("crypto").randomBytes(12).toString("base64url");
+            console.log("export ENCRYPTION_KEY=" + (process.env.ENCRYPTION_KEY || r(32)));
+            console.log("export BETTER_AUTH_SECRET=" + (process.env.BETTER_AUTH_SECRET || r(32)));
+            console.log("export OPENATS_ADMIN_PASSWORD=" + p);
+            console.log("export OPENATS_ADMIN_EMAIL=" + (process.env.ADMIN_EMAIL || "admin@example.com"));
+          ' > /config/env
+          chmod 644 /config/env
+          echo "Generated OpenATS secret keys."
+        fi
+
+  # Database schema migrations & default stage seeding
+  setup:
+    <<: *backend
+    restart: "no"
+    command: ["sh", "-c", ". /config/env && exec node dist/src/db/setup.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      config: { condition: service_completed_successfully }
+
+  # Initial super admin provisioning & welcome message output
+  admin:
+    image: ${OPENATS_WEB_IMAGE:-ghcr.io/noahtek/openats-web:${OPENATS_VERSION:-latest}}
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://openats:openats@postgres:5432/openats
+      BETTER_AUTH_URL: http://localhost:3000
+    volumes:
+      - config:/config:ro
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        . /config/env
+        node frontend/scripts/create-admin.cjs --if-none --email "$$OPENATS_ADMIN_EMAIL" --first-name Admin --last-name User
+        echo ""
+        echo "================================================================="
+        echo "  OpenATS is ready at http://localhost:3000"
+        echo "  Sign in with: $$OPENATS_ADMIN_EMAIL"
+        echo "  Password:     $$OPENATS_ADMIN_PASSWORD"
+        echo "  (Emails are captured at: http://localhost:8025)"
+        echo "================================================================="
+        echo ""
+    depends_on:
+      setup: { condition: service_completed_successfully }
+
+  # Backend Express API & Socket.IO server
+  api:
+    <<: *backend
+    command: ["sh", "-c", ". /config/env && exec node dist/src/server.js"]
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      redis: { condition: service_healthy }
+      setup: { condition: service_completed_successfully }
+
+  # BullMQ background worker (CV text extraction, cleanup, AI notes)
+  worker:
+    <<: *backend
+    command: ["sh", "-c", ". /config/env && exec node dist/src/worker.js"]
+    depends_on:
+      redis: { condition: service_healthy }
+      setup: { condition: service_completed_successfully }
+
+  # Next.js web application (Dashboard, Careers page, Sign-in)
+  web:
+    image: ${OPENATS_WEB_IMAGE:-ghcr.io/noahtek/openats-web:${OPENATS_VERSION:-latest}}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://openats:openats@postgres:5432/openats
+      BETTER_AUTH_URL: http://localhost:3000
+      OPENATS_API_URL: http://api:8080
+      OPENATS_PUBLIC_API_URL: http://localhost:8080
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      SMTP_REQUIRE_TLS: "false"
+      MAIL_FROM: hiring@example.com
+    volumes:
+      - config:/config:ro
+    command: ["sh", "-c", ". /config/env && exec node frontend/server.js"]
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      admin: { condition: service_completed_successfully }
 
 volumes:
   postgres-data:
   redis-data:
+  config:
+  files:

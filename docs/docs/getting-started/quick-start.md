@@ -21,7 +21,7 @@ You'll also need a Cloudflare account for file storage. These are only needed if
 ## 2. Download OpenATS and install packages
 
 ```sh
-git clone https://github.com/chamals3n4/OpenATS.git
+git clone https://github.com/NoahTek/OpenATS.git
 cd OpenATS
 pnpm install
 ```
@@ -31,7 +31,8 @@ Run this from the main folder. One command installs both the backend and the fro
 ## 3. Start PostgreSQL and Redis
 
 ```sh
-docker compose up -d
+make infra-up
+# or: docker compose up -d postgres redis mailpit
 ```
 
 This starts three containers:
