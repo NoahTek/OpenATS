@@ -1,7 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { JobFilters } from "@/app/(dashboard)/jobs/_components/job-filters";
 import type { Client, Department } from "@/types";
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 vi.mock("@/hooks/use-role", () => ({
   useIsManager: () => true,

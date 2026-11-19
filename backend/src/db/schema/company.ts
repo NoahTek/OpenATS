@@ -55,6 +55,7 @@ export const departments = pgTable(
   },
   (t) => [
     unique().on(t.companyId, t.name),
+    unique().on(t.clientId, t.name),
   ],
 );
 

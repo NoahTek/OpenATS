@@ -54,10 +54,9 @@ export default function BlogListPage(props: Props): ReactNode {
 
   return (
     <HtmlClassNameProvider className={clsx(ThemeClassNames.wrapper.blogPages, ThemeClassNames.page.blogListPage)}>
-      <PageMetadata title={metadata.blogTitle} description={metadata.blogDescription} />
-      <SearchMetadata tag="blog_posts_list" />
-      <BlogListPageStructuredData {...props} />
-      <Layout>
+      <Layout title={metadata.blogTitle} description={metadata.blogDescription}>
+        <SearchMetadata tag="blog_posts_list" />
+        <BlogListPageStructuredData {...props} />
         <main className={styles.page}>
           <div className={clsx('container', styles.inner)}>
             <Heading as="h1" className={styles.title}>

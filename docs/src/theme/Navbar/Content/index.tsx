@@ -26,14 +26,20 @@ function NavbarItems({items}: {items: NavbarItemConfig[]}): ReactNode {
 
 /** Logo on the left, the page links grouped in the middle, GitHub and the theme switch on the right. */
 export default function NavbarContent(): ReactNode {
-  const mobileSidebar = useNavbarMobileSidebar();
+  let mobileSidebarDisabled = false;
+  try {
+    const mobileSidebar = useNavbarMobileSidebar();
+    mobileSidebarDisabled = mobileSidebar.disabled;
+  } catch {
+    mobileSidebarDisabled = false;
+  }
   const items = useThemeConfig().navbar.items as NavbarItemConfig[];
   const [leftItems, rightItems] = splitNavbarItems(items);
 
   return (
     <div className={`navbar__inner ${styles.inner}`}>
       <div className={`navbar__items ${styles.brand}`}>
-        {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
+        {!mobileSidebarDisabled && <NavbarMobileSidebarToggle />}
         <NavbarLogo />
       </div>
       <nav className={styles.links} aria-label="Main">

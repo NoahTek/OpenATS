@@ -103,6 +103,13 @@ Being signed in isn't enough. Permissions depend on two things:
 
 The rules live in `shared/auth/job-access.ts`. Any route returning candidate or job data must use one of its guards. Public routes under `/public/*` have no sign-in, so nothing private can go there. Candidates reach their own tests, assignments and offers through private token links.
 
+## Multi-client recruiting and talent pool
+
+OpenATS supports agency and multi-client recruiting:
+
+- **Clients**: recruitment agencies can manage multiple client organizations (`clients` table). Each client can have its own branding, time zone, and client-scoped departments. Jobs can be associated with a client, enabling client-branded careers pages (`/careers/clients/:slug`).
+- **Talent pool**: candidates can be sourced into a global pool (`candidate_profiles` table) before or independently of any specific job opening. Resumes can be ingested individually or in bulk (PDF, Word, or ZIP). Candidates in the talent pool can then be submitted directly to active jobs, linking their application (`candidates` table) back to the global profile.
+
 ## What happens to a CV
 
 ```text
