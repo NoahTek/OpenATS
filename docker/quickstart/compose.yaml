@@ -1,6 +1,6 @@
 # OpenATS quickstart: everything on this machine, for trying OpenATS out.
 #
-#   docker compose -f oci://ghcr.io/chamals3n4/openats-quickstart:latest up
+#   docker compose -f oci://ghcr.io/noahtek/openats-quickstart:latest up
 #
 # Then open http://localhost:3000 and sign in with the login printed by the "admin" service
 # (`docker compose -p openats-quickstart logs admin` shows it again). Emails are caught by Mailpit at
@@ -12,7 +12,7 @@
 name: openats-quickstart
 
 x-backend: &backend
-  image: ghcr.io/chamals3n4/openats-backend:${OPENATS_VERSION:-latest}
+  image: ghcr.io/noahtek/openats-backend:${OPENATS_VERSION:-latest}
   restart: unless-stopped
   environment: &backend-env
     DATABASE_URL: postgresql://openats:openats@postgres:5432/openats
@@ -67,7 +67,7 @@ services:
 
   # Once per install: this install's own secret keys and first admin password, kept in a volume.
   config:
-    image: ghcr.io/chamals3n4/openats-backend:${OPENATS_VERSION:-latest}
+    image: ghcr.io/noahtek/openats-backend:${OPENATS_VERSION:-latest}
     user: "0"
     volumes:
       - config:/config
@@ -99,7 +99,7 @@ services:
 
   # Every start: the first super admin, only when there is none, then how to sign in.
   admin:
-    image: ghcr.io/chamals3n4/openats-web:${OPENATS_VERSION:-latest}
+    image: ghcr.io/noahtek/openats-web:${OPENATS_VERSION:-latest}
     restart: "no"
     environment:
       DATABASE_URL: postgresql://openats:openats@postgres:5432/openats
@@ -139,7 +139,7 @@ services:
       setup: { condition: service_completed_successfully }
 
   web:
-    image: ghcr.io/chamals3n4/openats-web:${OPENATS_VERSION:-latest}
+    image: ghcr.io/noahtek/openats-web:${OPENATS_VERSION:-latest}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://openats:openats@postgres:5432/openats

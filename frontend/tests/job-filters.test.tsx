@@ -8,13 +8,39 @@ vi.mock("@/hooks/use-role", () => ({
 }));
 
 const mockClients: Client[] = [
-  { id: 1, name: "Acme Corp", createdAt: "2026-01-01" },
-  { id: 2, name: "Globex", createdAt: "2026-01-01" },
+  {
+    id: 1,
+    name: "Acme Corp",
+    slug: "acme-corp",
+    email: null,
+    website: null,
+    phone: null,
+    address: null,
+    description: null,
+    logoUrl: null,
+    timeZone: "UTC",
+    createdAt: "2026-01-01",
+    updatedAt: "2026-01-01",
+  },
+  {
+    id: 2,
+    name: "Globex",
+    slug: "globex",
+    email: null,
+    website: null,
+    phone: null,
+    address: null,
+    description: null,
+    logoUrl: null,
+    timeZone: "UTC",
+    createdAt: "2026-01-01",
+    updatedAt: "2026-01-01",
+  },
 ];
 
 const mockDepartments: Department[] = [
-  { id: 10, name: "Engineering", createdAt: "2026-01-01" },
-  { id: 20, name: "Product", createdAt: "2026-01-01" },
+  { id: 10, name: "Engineering", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
+  { id: 20, name: "Product", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
 ];
 
 const clientNameById = new Map<number, string>([

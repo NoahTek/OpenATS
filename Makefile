@@ -76,7 +76,7 @@ auth-env:
 	$(call set-if-unset,BETTER_AUTH_URL,http://localhost:3000,📄 Set BETTER_AUTH_URL in $(FRONTEND_ENV))
 
 infra-up:
-	docker compose up -d
+	docker compose up -d postgres redis mailpit
 
 infra-down:
 	docker compose down

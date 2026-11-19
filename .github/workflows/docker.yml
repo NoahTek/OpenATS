@@ -3,9 +3,9 @@ name: Docker images
 # Builds and publishes the images and the quickstart compose file for a release. release.yml starts
 # it after making a release (a release made with github.token cannot start it through the release
 # event); it can also be run by hand for any release tag. It publishes:
-#   ghcr.io/chamals3n4/openats-backend   (API, worker and database setup)
-#   ghcr.io/chamals3n4/openats-web       (the website)
-#   ghcr.io/chamals3n4/openats-quickstart (the compose file, for `docker compose -f oci://… up`)
+#   ghcr.io/noahtek/openats-backend   (API, worker and database setup)
+#   ghcr.io/noahtek/openats-web       (the website)
+#   ghcr.io/noahtek/openats-quickstart (the compose file, for `docker compose -f oci://… up`)
 # Each is tagged with the version, and with `latest` unless the release is a pre-release.
 # The packages are private when first created: make each one public once in the package settings.
 
@@ -28,7 +28,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io/chamals3n4
+  REGISTRY: ghcr.io/noahtek
 
 jobs:
   images:
@@ -82,7 +82,7 @@ jobs:
           push: true
           tags: ${{ steps.tags.outputs.list }}
           labels: |
-            org.opencontainers.image.source=https://github.com/chamals3n4/OpenATS
+            org.opencontainers.image.source=https://github.com/NoahTek/OpenATS
             org.opencontainers.image.version=${{ steps.tags.outputs.version }}
             org.opencontainers.image.licenses=Apache-2.0
           cache-from: type=gha,scope=${{ matrix.image }}

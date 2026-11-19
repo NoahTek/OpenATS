@@ -59,7 +59,7 @@ export interface ParsedBulkItem {
 interface BulkIngestModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  jobs: Array<{ id: number; title: string; clientName?: string | null; clientId: number | null }>;
+  jobs: Array<{ id: number; title: string; clientName?: string | null; clientId?: number | null }>;
   clients: Array<{ id: number; name: string }>;
 }
 
@@ -288,7 +288,7 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
                     <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
                       Filter Job by Client
                     </label>
-                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                    <Select value={selectedClientId} onValueChange={(val) => setSelectedClientId(val ?? "all")}>
                       <SelectTrigger className="mt-1.5 bg-white dark:bg-neutral-800">
                         <SelectValue placeholder="All Clients" />
                       </SelectTrigger>
@@ -307,7 +307,7 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
                     <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
                       Target Job *
                     </label>
-                    <Select value={selectedJobId} onValueChange={setSelectedJobId}>
+                    <Select value={selectedJobId} onValueChange={(val) => setSelectedJobId(val ?? "")}>
                       <SelectTrigger className="mt-1.5 bg-white dark:bg-neutral-800">
                         <SelectValue placeholder="Select target job" />
                       </SelectTrigger>

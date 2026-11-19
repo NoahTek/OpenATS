@@ -66,6 +66,7 @@
     "@types/socket.io": "^3.0.2",
     "@types/supertest": "^7.2.0",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/word-extractor": "^1.0.6",
     "@vitest/coverage-v8": "^5.1.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",

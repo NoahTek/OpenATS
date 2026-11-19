@@ -513,8 +513,13 @@ export const getTalentPoolProfileResume = async (req: Request, res: Response) =>
     }
 
     const file = await talentPoolService.getResumeFile(id);
-    const resume = file ? await r2Service.getResume(file.resumeKey) : null;
-    if (!file || !resume) {
+    if (!file || !file.resumeKey) {
+      res.status(404).json({ error: "Resume not found" });
+      return;
+    }
+
+    const resume = await r2Service.getResume(file.resumeKey);
+    if (!resume) {
       res.status(404).json({ error: "Resume not found" });
       return;
     }

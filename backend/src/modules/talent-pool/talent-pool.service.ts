@@ -340,25 +340,27 @@ export const talentPoolService = {
 
         if (existing) {
           if (item.updateIfDuplicate) {
-            let newResumeKey: string | null = null;
-            if (item.resumeUploadId) {
-              newResumeKey = await resumeUploadService.claim(item.resumeUploadId);
-            }
-            await db
-              .update(candidateProfiles)
-              .set(
-                clean({
-                  firstName: item.firstName,
-                  lastName: item.lastName,
-                  phone: item.phone,
-                  linkedinUrl: item.linkedinUrl,
-                  source: item.source,
-                  notes: item.notes,
-                  resumeKey: newResumeKey ?? undefined,
-                  updatedAt: new Date(),
-                }),
-              )
-              .where(eq(candidateProfiles.id, existing.id));
+            await db.transaction(async (tx) => {
+              let newResumeKey: string | null = null;
+              if (item.resumeUploadId) {
+                newResumeKey = await resumeUploadService.claim(item.resumeUploadId, tx);
+              }
+              await tx
+                .update(candidateProfiles)
+                .set(
+                  clean({
+                    firstName: item.firstName,
+                    lastName: item.lastName,
+                    phone: item.phone,
+                    linkedinUrl: item.linkedinUrl,
+                    source: item.source,
+                    notes: item.notes,
+                    resumeKey: newResumeKey ?? undefined,
+                    updatedAt: new Date(),
+                  }),
+                )
+                .where(eq(candidateProfiles.id, existing.id));
+            });
 
             profileId = existing.id;
             updatedCount++;
