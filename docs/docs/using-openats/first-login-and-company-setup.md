@@ -21,16 +21,15 @@ There are no default credentials, and nobody can sign themselves up. If you have
 
 ## Complete the required company setup
 
-After your first successful sign-in, OpenATS sends you to **Settings > General**. This is required setup, not an optional profile page. You cannot continue to the rest of the dashboard until you save the company profile and create at least one department.
+After your first successful sign-in, OpenATS sends you to **Settings > General**. This is required setup, not an optional profile page. You cannot continue to the rest of the dashboard until you save your organization profile.
 
-The setup gate checks two things:
+The setup gate checks that:
 
-1. A company profile exists.
-2. At least one department belongs to that company.
+1. A company profile exists with a name and valid contact email.
 
-Only **Settings > General** remains available while either item is missing. This ensures that jobs always have an organization and department to belong to.
+Only **Settings > General** remains available until this profile is saved.
 
-### 1. Enter the company profile
+### Enter the company profile
 
 {/* SCREENSHOT: company-setup/company-profile.png - Settings > General with the Company Profile form filled in */}
 
@@ -48,21 +47,7 @@ The following fields are optional, but adding them gives your careers page and j
 - **Company Logo**: upload a PNG, JPG, WebP, GIF, or SVG file up to 5 MB.
 - **Company time zone**: interview times and other dates in emails to candidates are written in this time zone. It starts on your browser's own zone; check it is where your company works, such as `Asia/Colombo`.
 
-Select **Create** when the profile is new, or **Save** when updating an existing profile. Wait for the success message before moving to departments.
-
-### 2. Add a department
-
-{/* SCREENSHOT: company-setup/departments.png - The Departments section with three departments added */}
-
-In the **Departments** section, select **Add Department**, enter a department name, and select **Add**. For example:
-
-```text
-Engineering
-```
-
-Create every department that will own jobs, such as Engineering, Product, Design, Marketing, or People Operations. A department only needs a name. You can edit or delete departments later, but a department assigned to an existing job cannot be deleted until those jobs are reassigned or removed.
-
-Once the company profile and at least one department are saved, the setup gate is cleared. OpenATS will take you to the normal dashboard on the next navigation.
+Select **Create** when the profile is new, or **Save** when updating an existing profile. Once the profile is saved, the setup gate is cleared and OpenATS takes you to the dashboard.
 
 ## Turn on AI CV analysis (optional)
 
@@ -70,11 +55,10 @@ You'll also see an **AI CV analysis** switch on this page. It's off by default, 
 
 ## If you are redirected again
 
-Being sent back to **Settings > General** means one of the required setup checks is still incomplete:
+Being sent back to **Settings > General** means the required setup check is still incomplete:
 
 - The company profile was not saved successfully.
 - The company name or contact email is missing or invalid.
-- No department has been created yet.
 - The session is connected to a different database than the one where setup was completed.
 
 ## Next step

@@ -6,7 +6,7 @@
 </h1>
 
 <p align="center">
-  <strong>An open-source hiring platform to streamline recruitment and hire faster.</strong>
+  <strong>An open-source multi-client applicant tracking and candidate sourcing platform for agencies and modern hiring teams.</strong>
 </p>
 
 <p align="center">
@@ -27,33 +27,41 @@
 
 ---
 
-OpenATS is an open-source applicant tracking system for organizations that want to run hiring in
-one clear, shared workspace. It replaces disconnected spreadsheets, inboxes, and point tools with a
-process that follows a candidate from an open role through interview and final decision.
+OpenATS is an open-source applicant tracking and sourcing system built for recruitment agencies
+and organizations that manage hiring across multiple clients and teams in one clear, shared workspace.
+It replaces disconnected spreadsheets, inboxes, and point tools with a unified platform that follows
+candidates from sourcing and talent pooling through client job pipelines, interviews, and offers.
 
 ## Features
 
-- **Jobs and careers page**: create jobs with departments, salary and custom application
-  questions, and publish them on a built-in careers page or embed them on your own website.
-- **Candidate pipeline**: move candidates through your own hiring stages on a drag and drop
-  board, with filters, bulk actions and a full stage history.
-- **CV search**: the text of every uploaded CV is read on your server, so you can search across
-  all CVs and see where the words matched.
-- **Scoring**: each job sets how much application answers, assessments, ratings and interviews
-  count, and every candidate gets a total score from them.
-- **Assessments**: build tests with choice and written questions, send them automatically at a
-  stage, and grade written answers.
-- **Interviews**: schedule interviews, let candidates pick a time from the slots you offer, add
-  them to the interviewer's Google Calendar with a Meet link, and collect scorecards.
-- **Offers**: write offer letters from templates, send them, and let candidates accept or
-  decline online before the offer expires.
-- **Emails**: email candidates from templates, and reword the emails OpenATS sends by itself.
-- **Team collaboration**: a private discussion for each job's hiring team, star ratings and
-  shared notes.
-- **Roles and access**: super admins, hiring managers and interviewers, with interviewers seeing
-  only the jobs they are on.
-- **Optional AI notes**: turn on Gemini to get a summary, strengths and gaps for each CV. It is
-  off by default and never part of the score.
+- **Multi-client recruiting**: manage client companies with dedicated profiles, logos, time zones,
+  and client-scoped departments. Filter jobs, candidates, and pipelines by client across your workspace.
+- **Client-branded careers pages**: provide dedicated public careers boards for each client at
+  `/careers/clients/:slug`, displaying client branding, logos, and active openings.
+- **Global talent pool**: source candidates independently of specific jobs into a central talent
+  database, and submit them directly across multiple active client openings with submission tracking.
+- **Bulk resume ingestion & parsing**: upload single CVs or batch import resumes in bulk using
+  PDF, Word (`.docx`, `.doc`), or compressed archives (`.zip`) with automated candidate detail extraction.
+- **Jobs and applications**: create jobs assigned to clients with optional departments, salary details,
+  and custom screening questions (with knockout rules).
+- **Candidate pipeline**: move candidates through customizable hiring stages on a shared drag-and-drop
+  board, with filters, bulk actions, and complete audit history.
+- **CV full-text search**: the text of every uploaded CV is parsed on your server, enabling instant
+  keyword searching across all resumes with match highlighting.
+- **Candidate scoring**: configure weights for application answers, skill assessments, interviewer
+  ratings, and scorecards to generate an objective candidate score.
+- **Assessments**: create timed tests with multiple-choice and written questions, automate invitations
+  at specific pipeline stages, and grade responses.
+- **Interviews & scheduling**: let candidates select available interview slots, sync bookings directly
+  to interviewer Google Calendars with Google Meet links, and collect structured scorecards.
+- **Offers**: draft offer letters from templates, track views, and receive online candidate
+  acceptance or decline before deadlines.
+- **Automated emails**: trigger customizable emails to candidates and interviewers at every hiring step.
+- **Team collaboration**: internal notes, candidate ratings, and per-job hiring team discussions.
+- **Modern responsive layout**: collapsible sidebar with icon and off-canvas modes for desktop and mobile.
+- **Role-based access**: super admins, hiring managers, and interviewers with granular per-job visibility.
+- **Optional AI notes**: enable Gemini AI for automated CV summaries, strengths, and gap analysis
+  (off by default and never impacts candidate scores).
 
 ## Tech stack
 

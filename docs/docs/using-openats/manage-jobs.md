@@ -20,7 +20,7 @@ Everything about a role lives in its job: the details, the team, the pipeline, y
 
 ## Find a job
 
-All your jobs are under **Manage Jobs**. If the list gets long, search for one or filter by department, type or status. Hiring Managers and Interviewers only see jobs they're on the team of.
+All your jobs are under **Manage Jobs**. If the list gets long, search for one or filter by client, department, type or status. Hiring Managers and Interviewers only see jobs they're on the team of.
 
 {/* SCREENSHOT: manage-jobs/job-list.png - The Manage Jobs list with several jobs in different statuses */}
 
@@ -36,20 +36,21 @@ You need the **Super Admin** or **Hiring Manager** role to create a job.
 
 The form opens with the job saved as a draft until you publish it.
 
-![The top section of the Create New Job form, including the title, department, employment type, skills, location, and description fields.](/content/manage-jobs/create-job-top-part.png)
+![The top section of the Create New Job form, including the title, client company, department, employment type, skills, location, and description fields.](/content/manage-jobs/create-job-top-part.png)
 
 ### Enter the job details
 
 Complete the fields in this order:
 
 1. **Job Title**: enter the name candidates will see, such as `Software Engineering Intern`.
-2. **Department**: choose the department responsible for this role. Departments are created in [Set Up Your Company](./first-login-and-company-setup).
-3. **Employment Type**: choose **Full Time**, **Part Time**, **Contract**, **Internship**, or **Freelance**.
-4. **Skills**: add the skills relevant to the role.
-5. **Location**: enter a location, work arrangement, or both, such as `Colombo, Sri Lanka (Hybrid)`.
-6. **Job Description**: write the role description. Use the editor toolbar for headings, bold text, italic text, bulleted lists, and numbered lists.
+2. **Client Company**: choose the client company this role is being recruited for, or select **None (Internal)** for internal agency openings.
+3. **Department** *(Optional)*: choose the department within the selected client company.
+4. **Employment Type**: choose **Full Time**, **Part Time**, **Contract**, **Internship**, or **Freelance**.
+5. **Skills**: add the skills relevant to the role.
+6. **Location**: enter a location, work arrangement, or both, such as `Colombo, Sri Lanka (Hybrid)`.
+7. **Job Description**: write the role description. Use the editor toolbar for headings, bold text, italic text, bulleted lists, and numbered lists.
 
-Job title, department, and employment type are required before **Save Job** becomes available. Location, skills, and the description can be completed according to the role.
+Job title and employment type are required before **Save Job** becomes available. Client, department, location, skills, and the description can be completed according to the role.
 
 ### Add skills
 

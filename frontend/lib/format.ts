@@ -43,7 +43,7 @@ export function formatTime(value: string | null | undefined): string {
 /** e.g. "LKR 100,000 – 150,000/monthly", or null when the job has no salary */
 export function formatSalary(job: JobDetail): string | null {
   if (!job.salaryType) return null;
-  const fmt = (n: string | null) => (n ? Number(n).toLocaleString() : "");
+  const fmt = (n: string | null) => (n ? Number(n).toLocaleString("en-US") : "");
   const freq = job.payFrequency ? `/${job.payFrequency}` : "";
   if (job.salaryType === "fixed") return `${job.currency} ${fmt(job.salaryFixed)}${freq}`;
   return `${job.currency} ${fmt(job.salaryMin)} – ${fmt(job.salaryMax)}${freq}`;
