@@ -3,7 +3,6 @@ import { db } from "../../db";
 import {
   candidateProfiles,
   candidateProfileCvText,
-  candidateCvText,
   candidates,
   jobPipelineStages,
   jobs,
