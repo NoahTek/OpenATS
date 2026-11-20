@@ -3,6 +3,7 @@ import { db } from "../../db";
 import {
   candidateProfiles,
   candidateProfileCvText,
+  candidateCvText,
   candidates,
   jobPipelineStages,
   jobs,
@@ -71,13 +72,13 @@ export const talentPoolService = {
           ilike(candidateProfiles.lastName, searchNormalized),
           ilike(candidateProfiles.email, searchNormalized),
           sql`exists (
-            select 1 from candidate_profile_cv_text cpvt
+            select 1 from ${candidateProfileCvText} cpvt
             where cpvt.profile_id = ${candidateProfiles.id}
               and cpvt.search_vector @@ websearch_to_tsquery('english', ${searchTsQuery})
           )`,
           sql`exists (
-            select 1 from candidate_cv_text cvt
-            join candidates c on c.id = cvt.candidate_id
+            select 1 from ${candidateCvText} cvt
+            join ${candidates} c on c.id = cvt.candidate_id
             where c.candidate_profile_id = ${candidateProfiles.id}
               and cvt.search_vector @@ websearch_to_tsquery('english', ${searchTsQuery})
           )`,
@@ -89,13 +90,13 @@ export const talentPoolService = {
       conditions.push(
         or(
           sql`exists (
-            select 1 from candidate_profile_cv_text cpvt
+            select 1 from ${candidateProfileCvText} cpvt
             where cpvt.profile_id = ${candidateProfiles.id}
               and cpvt.experience_years >= ${minExperienceYears}
           )`,
           sql`exists (
-            select 1 from candidate_cv_text cvt
-            join candidates c on c.id = cvt.candidate_id
+            select 1 from ${candidateCvText} cvt
+            join ${candidates} c on c.id = cvt.candidate_id
             where c.candidate_profile_id = ${candidateProfiles.id}
               and cvt.experience_years >= ${minExperienceYears}
           )`,
