@@ -390,7 +390,6 @@ export function useUpdateInterview() {
   return useMutation({
     mutationFn: ({
       interviewId,
-      candidateId,
       data,
     }: {
       interviewId: number;

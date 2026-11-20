@@ -22,7 +22,15 @@
     "node": ">=24.x"
   },
   "nodemonConfig": {
-    "ext": "ts,json"
+    "watch": [
+      "src"
+    ],
+    "ext": "ts,json",
+    "ignore": [
+      "dist/*",
+      "src/**/*.test.ts",
+      "tests/*"
+    ]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",

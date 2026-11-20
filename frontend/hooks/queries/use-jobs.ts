@@ -7,7 +7,6 @@ import type {
   ScorecardCriterion,
   HiringTeamMember,
   HiringTeamMembership,
-  User,
 } from "@/types";
 import type { PaginationInfo } from "@/components/table/table-footer";
 

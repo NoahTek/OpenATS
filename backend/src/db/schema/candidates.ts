@@ -66,7 +66,7 @@ export const candidates = pgTable(
 
     candidateProfileId: integer("candidate_profile_id").references(
       () => candidateProfiles.id,
-      { onDelete: "cascade" },
+      { onDelete: "set null" },
     ),
 
     firstName: varchar("first_name", { length: 100 }).notNull(),

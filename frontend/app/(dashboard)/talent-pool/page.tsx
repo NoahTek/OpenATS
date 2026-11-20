@@ -85,7 +85,7 @@ export default function TalentPoolPage() {
   }, [publishedJobs]);
 
   const { data: clientsData } = useClients();
-  const clients = clientsData?.data ?? [];
+  const clients = useMemo(() => clientsData?.data ?? [], [clientsData?.data]);
 
   const sortedClients = useMemo(() => {
     return [...clients].sort((a, b) => a.name.localeCompare(b.name));

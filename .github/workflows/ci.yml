@@ -54,10 +54,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Backend only. The frontend still has lint errors, so the root `lint`
-      # script would fail every run until those are cleared.
-      - name: Lint backend
-        run: pnpm --filter ./backend lint
+      - name: Lint workspace
+        run: pnpm lint
 
       - name: Apply migrations to the test database
         working-directory: backend
