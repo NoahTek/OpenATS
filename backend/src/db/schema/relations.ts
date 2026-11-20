@@ -28,6 +28,7 @@ import {
   candidateAssessmentAnswerSelections,
   candidateCvAnalysis,
   candidateCvText,
+  candidateProfileCvText,
 } from "./candidates";
 import { offers } from "./offers";
 import { candidateActivities } from "./candidate-activities";
@@ -247,6 +248,7 @@ export const candidateProfilesRelations = relations(
       references: [users.id],
     }),
     applications: many(candidates),
+    cvText: one(candidateProfileCvText),
   }),
 );
 
@@ -391,6 +393,16 @@ export const candidateCvTextRelations = relations(
     candidate: one(candidates, {
       fields: [candidateCvText.candidateId],
       references: [candidates.id],
+    }),
+  }),
+);
+
+export const candidateProfileCvTextRelations = relations(
+  candidateProfileCvText,
+  ({ one }) => ({
+    profile: one(candidateProfiles, {
+      fields: [candidateProfileCvText.profileId],
+      references: [candidateProfiles.id],
     }),
   }),
 );
