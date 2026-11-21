@@ -1,6 +1,5 @@
 import {
   useQuery,
-  useQueries,
   keepPreviousData,
   useQueryClient,
   useMutation,

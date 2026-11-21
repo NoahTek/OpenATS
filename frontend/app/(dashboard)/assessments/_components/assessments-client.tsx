@@ -63,13 +63,6 @@ export default function AssessmentsPageClient({ tab = "assessments" }: { tab?: A
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const openInviteDialog = useCallback((assessment: Assessment) => {
-    setInviteTarget(assessment);
-    setSelectedCandidateId("");
-    setGeneratedLink(null);
-    setCopied(false);
-  }, []);
-
   const handleGenerateLink = useCallback(() => {
     if (!inviteTarget || !selectedCandidateId) return;
 

@@ -167,7 +167,7 @@ async function main() {
     }
 
     if (existing.rows.length === 0) {
-      const { user } = await auth.api.createUser({
+      await auth.api.createUser({
         body: {
           email,
           password,

@@ -66,7 +66,7 @@ export const candidates = pgTable(
 
     candidateProfileId: integer("candidate_profile_id").references(
       () => candidateProfiles.id,
-      { onDelete: "cascade" },
+      { onDelete: "set null" },
     ),
 
     firstName: varchar("first_name", { length: 100 }).notNull(),
@@ -357,6 +357,51 @@ export const candidateCvText = pgTable(
   ],
 );
 
+/**
+ * The text of a talent-pool profile's CV, read from the uploaded file on our own server.
+ * Enables full-text search across all sourcing candidate profiles in the talent pool.
+ */
+export const candidateProfileCvText = pgTable(
+  "candidate_profile_cv_text",
+  {
+    id: serial("id").primaryKey(),
+    profileId: integer("profile_id")
+      .notNull()
+      .references(() => candidateProfiles.id, { onDelete: "cascade" }),
+
+    resumeKey: varchar("resume_key", { length: 1000 }).notNull(),
+
+    status: cvTextStatus("status").notNull().default("pending"),
+    method: varchar("method", { length: 10 }),
+    fileType: varchar("file_type", { length: 10 }),
+
+    text: text("text"),
+    searchText: text("search_text"),
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      (): SQL => sql`to_tsvector('english', coalesce(${candidateProfileCvText.searchText}, ''))`,
+    ),
+
+    pageCount: integer("page_count"),
+    charCount: integer("char_count"),
+
+    sections: jsonb("sections").$type<{ key: string; heading: string | null; text: string }[]>(),
+    experienceYears: numeric("experience_years", { precision: 4, scale: 1 }).$type<number>(),
+    educationLevel: varchar("education_level", { length: 20 }),
+    contacts: jsonb("contacts").$type<{ emails: string[]; phones: string[]; links: string[] }>(),
+
+    extractorVersion: integer("extractor_version").notNull().default(1),
+
+    errorMessage: text("error_message"),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    unique().on(t.profileId),
+    index("idx_candidate_profile_cv_text_search").using("gin", t.searchVector),
+  ],
+);
+
 export type Candidate = typeof candidates.$inferSelect;
 export type NewCandidate = typeof candidates.$inferInsert;
 
@@ -386,6 +431,9 @@ export type NewCandidateCvAnalysis = typeof candidateCvAnalysis.$inferInsert;
 
 export type CandidateCvText = typeof candidateCvText.$inferSelect;
 export type NewCandidateCvText = typeof candidateCvText.$inferInsert;
+
+export type CandidateProfileCvText = typeof candidateProfileCvText.$inferSelect;
+export type NewCandidateProfileCvText = typeof candidateProfileCvText.$inferInsert;
 
 /**
  * CVs uploaded from the careers page and not attached to an application yet. The id is what the

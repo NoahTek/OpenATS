@@ -71,7 +71,6 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
   const [selectedJobId, setSelectedJobId] = useState<string>("");
 
   const [isParsing, setIsParsing] = useState(false);
-  const [parseProgress, setParseProgress] = useState<{ total: number; filename: string } | null>(null);
   const [items, setItems] = useState<ParsedBulkItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -93,7 +92,6 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
     }
 
     setIsParsing(true);
-    setParseProgress({ total: fileList.length, filename: fileList[0]?.name ?? "" });
 
     try {
       const formData = new FormData();
@@ -112,7 +110,9 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
       }
 
       const { data } = await res.json();
-      const parsedItems: ParsedBulkItem[] = (data || []).map((row: any) => ({
+      const parsedItems: ParsedBulkItem[] = (
+        (data as Array<Omit<ParsedBulkItem, "selected" | "updateIfDuplicate">>) || []
+      ).map((row) => ({
         ...row,
         selected: row.status === "ready",
         updateIfDuplicate: false,
@@ -125,11 +125,14 @@ export function BulkIngestModal({ open, onOpenChange, jobs, clients }: BulkInges
       toast.error(err instanceof Error ? err.message : "Failed to parse uploaded resumes");
     } finally {
       setIsParsing(false);
-      setParseProgress(null);
     }
   };
 
-  const handleItemChange = (id: string, field: keyof ParsedBulkItem, value: any) => {
+  const handleItemChange = <K extends keyof ParsedBulkItem>(
+    id: string,
+    field: K,
+    value: ParsedBulkItem[K],
+  ) => {
     setItems((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;

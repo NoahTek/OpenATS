@@ -2,6 +2,8 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "../../db";
 import {
   candidateProfiles,
+  candidateProfileCvText,
+  candidateCvText,
   candidates,
   jobPipelineStages,
   jobs,
@@ -9,6 +11,11 @@ import {
 import { candidateService } from "../candidate/candidate.service";
 import { resumeUploadService } from "../upload/resume-upload.service";
 import { requestResumeDeletion } from "../../queues/resume-delete/queue";
+import { requestCvExtraction } from "../../queues/cv-extract/queue";
+import { requestCvAnalysis } from "../../queues/cv-analysis/queue";
+import { normalizeForSearch } from "../candidate/cv-text/normalize-search";
+import { extractCvText, EXTRACTOR_VERSION } from "../candidate/cv-text";
+import { r2Service } from "../../shared/services/r2.service";
 import logger from "../../utils/logger";
 import { cleanObject as clean } from "../../utils/object.utils";
 
@@ -58,16 +65,22 @@ export const talentPoolService = {
 
     if (search) {
       const searchNormalized = `%${search.trim().toLowerCase()}%`;
+      const searchTsQuery = normalizeForSearch(search.trim());
       conditions.push(
         or(
           ilike(candidateProfiles.firstName, searchNormalized),
           ilike(candidateProfiles.lastName, searchNormalized),
           ilike(candidateProfiles.email, searchNormalized),
           sql`exists (
-            select 1 from candidate_cv_text cvt
-            join candidates c on c.id = cvt.candidate_id
+            select 1 from ${candidateProfileCvText} cpvt
+            where cpvt.profile_id = ${candidateProfiles.id}
+              and cpvt.search_vector @@ websearch_to_tsquery('english', ${searchTsQuery})
+          )`,
+          sql`exists (
+            select 1 from ${candidateCvText} cvt
+            join ${candidates} c on c.id = cvt.candidate_id
             where c.candidate_profile_id = ${candidateProfiles.id}
-              and cvt.search_vector @@ websearch_to_tsquery('english', ${search})
+              and cvt.search_vector @@ websearch_to_tsquery('english', ${searchTsQuery})
           )`,
         ),
       );
@@ -75,12 +88,19 @@ export const talentPoolService = {
 
     if (minExperienceYears !== undefined) {
       conditions.push(
-        sql`exists (
-          select 1 from candidate_cv_text cvt
-          join candidates c on c.id = cvt.candidate_id
-          where c.candidate_profile_id = ${candidateProfiles.id}
-            and cvt.experience_years >= ${minExperienceYears}
-        )`,
+        or(
+          sql`exists (
+            select 1 from ${candidateProfileCvText} cpvt
+            where cpvt.profile_id = ${candidateProfiles.id}
+              and cpvt.experience_years >= ${minExperienceYears}
+          )`,
+          sql`exists (
+            select 1 from ${candidateCvText} cvt
+            join ${candidates} c on c.id = cvt.candidate_id
+            where c.candidate_profile_id = ${candidateProfiles.id}
+              and cvt.experience_years >= ${minExperienceYears}
+          )`,
+        ),
       );
     }
 
@@ -174,7 +194,7 @@ export const talentPoolService = {
   async createProfile(input: CreateTalentPoolProfileInput) {
     const { resumeUploadId, ...fields } = input;
 
-    return await db.transaction(async (tx) => {
+    const created = await db.transaction(async (tx) => {
       let resumeKey: string | null = null;
       if (resumeUploadId) {
         resumeKey = await resumeUploadService.claim(resumeUploadId, tx);
@@ -196,6 +216,73 @@ export const talentPoolService = {
 
       return created;
     });
+
+    if (created.resumeKey) {
+      void this.extractAndSaveProfileCvText(created.id, created.resumeKey);
+    }
+
+    return created;
+  },
+
+  /**
+   * Extract CV text and save into candidate_profile_cv_text for full-text search
+   */
+  async extractAndSaveProfileCvText(profileId: number, resumeKey: string): Promise<void> {
+    try {
+      const file = await r2Service.getResume(resumeKey);
+      if (!file) {
+        logger.warn(`[talent-pool-cv] Resume file not found in storage: ${resumeKey}`);
+        return;
+      }
+      const extracted = await extractCvText(file);
+      await db
+        .insert(candidateProfileCvText)
+        .values({
+          profileId,
+          resumeKey,
+          status: extracted.status,
+          method: extracted.method,
+          fileType: extracted.fileType,
+          text: extracted.text || null,
+          searchText: extracted.searchText || null,
+          pageCount: extracted.pageCount,
+          charCount: extracted.text.length,
+          sections: extracted.profile?.sections ?? null,
+          experienceYears: extracted.profile?.experienceYears ?? null,
+          educationLevel: extracted.profile?.educationLevel ?? null,
+          contacts: extracted.profile?.contacts ?? null,
+          extractorVersion: EXTRACTOR_VERSION,
+          errorMessage: null,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: candidateProfileCvText.profileId,
+          set: {
+            resumeKey,
+            status: extracted.status,
+            method: extracted.method,
+            fileType: extracted.fileType,
+            text: extracted.text || null,
+            searchText: extracted.searchText || null,
+            pageCount: extracted.pageCount,
+            charCount: extracted.text.length,
+            sections: extracted.profile?.sections ?? null,
+            experienceYears: extracted.profile?.experienceYears ?? null,
+            educationLevel: extracted.profile?.educationLevel ?? null,
+            contacts: extracted.profile?.contacts ?? null,
+            extractorVersion: EXTRACTOR_VERSION,
+            errorMessage: null,
+            updatedAt: new Date(),
+          },
+        });
+      logger.info(
+        `[talent-pool-cv] Extracted profileId=${profileId} status=${extracted.status} chars=${extracted.text.length}`,
+      );
+    } catch (err) {
+      logger.error(
+        `[talent-pool-cv] Failed to extract CV for profileId=${profileId}: ${(err as Error).message}`,
+      );
+    }
   },
 
   /**
@@ -250,6 +337,18 @@ export const talentPoolService = {
         resumeKey: profile.resumeKey,
       })
       .where(eq(candidates.id, application.id));
+
+    if (profile.resumeKey) {
+      void requestCvExtraction({
+        candidateId: application.id,
+        resumeKey: profile.resumeKey,
+      });
+      void requestCvAnalysis({
+        candidateId: application.id,
+        jobId: input.jobId,
+        resumeKey: profile.resumeKey,
+      });
+    }
 
     return {
       applicationId: application.id,
@@ -338,10 +437,12 @@ export const talentPoolService = {
 
         if (existing) {
           if (item.updateIfDuplicate) {
+            let claimedResumeKey: string | null = null;
             await db.transaction(async (tx) => {
               let newResumeKey: string | null = null;
               if (item.resumeUploadId) {
                 newResumeKey = await resumeUploadService.claim(item.resumeUploadId, tx);
+                claimedResumeKey = newResumeKey;
               }
               await tx
                 .update(candidateProfiles)
@@ -359,6 +460,10 @@ export const talentPoolService = {
                 )
                 .where(eq(candidateProfiles.id, existing.id));
             });
+
+            if (claimedResumeKey) {
+              void this.extractAndSaveProfileCvText(existing.id, claimedResumeKey);
+            }
 
             profileId = existing.id;
             updatedCount++;

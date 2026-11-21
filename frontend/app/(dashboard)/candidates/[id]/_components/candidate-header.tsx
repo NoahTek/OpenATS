@@ -50,7 +50,6 @@ export function CandidateHeader({
   candidate,
   offer,
   pipelineStages,
-  selectedStageId,
   effectiveSelectedStageId,
   hasStageChange,
   moveStageMutation,

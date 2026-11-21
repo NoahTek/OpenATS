@@ -217,8 +217,16 @@ const bulkCreateProfileItemSchema = z.object({
   updateIfDuplicate: z.boolean().optional().default(false),
 });
 
-const bulkCreateSchema = z.object({
-  profiles: z.array(bulkCreateProfileItemSchema).min(1, "At least one candidate profile is required"),
+export const MAX_BULK_PARSE_ITEMS = 50;
+export const MAX_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024; // 10MB per resume file
+export const MAX_TOTAL_UNCOMPRESSED_BYTES = 100 * 1024 * 1024; // 100MB total per zip archive
+export const MAX_ZIP_ENTRIES_SCANNED = 200; // Cap total entries scanned to prevent zip bombs
+
+export const bulkCreateSchema = z.object({
+  profiles: z
+    .array(bulkCreateProfileItemSchema)
+    .min(1, "At least one candidate profile is required")
+    .max(MAX_BULK_PARSE_ITEMS, `Maximum ${MAX_BULK_PARSE_ITEMS} candidate profiles per bulk request`),
   jobId: z.number().int().positive().optional().nullable(),
 });
 
@@ -296,8 +304,11 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
 
     const allUploaded = req.file ? [req.file, ...rawFiles] : rawFiles;
     const itemsToProcess: ProcessedFileItem[] = [];
+    let totalUncompressedBytes = 0;
 
     for (const f of allUploaded) {
+      if (itemsToProcess.length >= MAX_BULK_PARSE_ITEMS) break;
+
       const isZip =
         f.originalname.toLowerCase().endsWith(".zip") ||
         f.mimetype === "application/zip" ||
@@ -308,7 +319,16 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
         try {
           const zip = new AdmZip(f.buffer);
           const zipEntries = zip.getEntries();
+          let scannedEntries = 0;
+
           for (const entry of zipEntries) {
+            if (itemsToProcess.length >= MAX_BULK_PARSE_ITEMS) break;
+            scannedEntries++;
+            if (scannedEntries > MAX_ZIP_ENTRIES_SCANNED) {
+              logger.warn(`Bulk parse: exceeded max zip entries scanned (${MAX_ZIP_ENTRIES_SCANNED}) in ${f.originalname}`);
+              break;
+            }
+
             if (entry.isDirectory) continue;
             const entryName = entry.entryName;
             if (entryName.startsWith("__MACOSX") || entryName.includes("/.") || entryName.startsWith(".")) {
@@ -316,7 +336,22 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
             }
             const lowerName = entryName.toLowerCase();
             if (lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+              if (entry.header.size > MAX_ENTRY_UNCOMPRESSED_BYTES) {
+                logger.warn(`Skipping zip entry ${entryName} exceeding max uncompressed size: ${entry.header.size} bytes`);
+                continue;
+              }
+              if (totalUncompressedBytes + entry.header.size > MAX_TOTAL_UNCOMPRESSED_BYTES) {
+                logger.warn(`Bulk parse: archive exceeded total uncompressed size limit (${MAX_TOTAL_UNCOMPRESSED_BYTES} bytes)`);
+                break;
+              }
+
               const entryBuffer = entry.getData();
+              if (entryBuffer.length > MAX_ENTRY_UNCOMPRESSED_BYTES) {
+                logger.warn(`Skipping zip entry ${entryName} with actual decompressed size exceeding max: ${entryBuffer.length} bytes`);
+                continue;
+              }
+
+              totalUncompressedBytes += entryBuffer.length;
               const baseName = entryName.split("/").pop() || entryName;
               itemsToProcess.push({
                 buffer: entryBuffer,
@@ -331,6 +366,10 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
       } else {
         const lowerName = f.originalname.toLowerCase();
         if (lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+          if (f.buffer.length > MAX_ENTRY_UNCOMPRESSED_BYTES) {
+            logger.warn(`Skipping uploaded file ${f.originalname} exceeding max size: ${f.buffer.length} bytes`);
+            continue;
+          }
           itemsToProcess.push({
             buffer: f.buffer,
             originalname: f.originalname,
@@ -346,6 +385,7 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
     }
 
     // Process up to 50 items
+    const boundedItems = itemsToProcess.slice(0, MAX_BULK_PARSE_ITEMS);
     const parsedResults: Array<{
       id: string;
       fileName: string;
@@ -361,8 +401,8 @@ export const bulkParseResumes = async (req: Request, res: Response) => {
 
     const foundEmails: string[] = [];
 
-    for (let i = 0; i < itemsToProcess.length; i++) {
-      const item = itemsToProcess[i]!;
+    for (let i = 0; i < boundedItems.length; i++) {
+      const item = boundedItems[i]!;
       const rowId = `item-${i}-${Date.now()}`;
 
       try {

@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import type { TemplateType } from "../_lib/template-form-types";
 import { DEFAULT_DURATION_MINUTES, parseEventConfig, parseEmailBody } from "../_lib/template-form-utils";
 
-export function useTemplateForm(initialType: TemplateType) {
+export function useTemplateForm(_initialType: TemplateType) {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [emailBodyHtml, setEmailBodyHtml] = useState("");

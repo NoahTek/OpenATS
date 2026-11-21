@@ -326,6 +326,10 @@ export const offerService = {
 
     if (!candidate) throw new Error("Candidate not found");
 
+    if (candidate.jobId !== input.jobId) {
+      throw new Error("Candidate does not belong to this job");
+    }
+
     const [job] = await db.select().from(jobs).where(eq(jobs.id, input.jobId));
 
     if (!job) throw new Error("Job not found");

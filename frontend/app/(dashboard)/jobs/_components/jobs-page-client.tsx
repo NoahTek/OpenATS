@@ -13,7 +13,7 @@ const PAGE_LIMIT = 15;
 
 export function JobsPageClient() {
   const { data: clientData } = useClients();
-  const clients = clientData?.data ?? [];
+  const clients = useMemo(() => clientData?.data ?? [], [clientData?.data]);
 
   // ── Filter State ───────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,7 +26,7 @@ export function JobsPageClient() {
 
   const selectedClientId = filterClient === "all" ? undefined : parseInt(filterClient);
   const { data: deptData } = useClientDepartments(selectedClientId);
-  const departments = deptData?.data ?? [];
+  const departments = useMemo(() => deptData?.data ?? [], [deptData?.data]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -45,7 +45,7 @@ export function JobsPageClient() {
     departmentId: filterDept === "all" ? undefined : parseInt(filterDept),
   });
 
-  const jobs = data?.data ?? [];
+  const jobs = useMemo(() => data?.data ?? [], [data?.data]);
   const pagination = data?.pagination;
 
   // Filter employment type on the client
