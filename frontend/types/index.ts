@@ -129,6 +129,11 @@ export type TalentPoolProfile = {
   submissionCount: number;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Sent with search results: where in the CV the search was found, with the matched words
+   * between [[ and ]]. Null when the candidate was found by name or email only, or no search.
+   */
+  cvSnippet?: string | null;
 };
 
 export type TalentPoolProfileDetail = TalentPoolProfile & {

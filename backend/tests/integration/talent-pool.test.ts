@@ -18,7 +18,7 @@ import { db } from "../../src/db";
 import { company } from "../../src/db/schema/company";
 import { jobs } from "../../src/db/schema/jobs";
 import { jobHiringTeam, jobPipelineStages } from "../../src/db/schema/pipeline";
-import { candidateProfiles, candidates } from "../../src/db/schema/candidates";
+import { candidateProfiles, candidateProfileCvText, candidates } from "../../src/db/schema/candidates";
 import { users } from "../../src/db/schema/users";
 import { initTestKeys, bearer } from "../helpers/jwt";
 
@@ -130,6 +130,26 @@ describe("Talent Pool routes (/api/talent-pool)", () => {
     expect(res.body.data).toBeDefined();
     const found = res.body.data.find((p: { id: number }) => p.id === createdProfileId);
     expect(found).toBeDefined();
+    expect(found.cvSnippet).toBeNull();
+  });
+
+  it("returns highlighted cvSnippet when searching talent pool by CV content", async () => {
+    await db.insert(candidateProfileCvText).values({
+      profileId: createdProfileId,
+      resumeKey: `resumes/${createdProfileId}.pdf`,
+      status: "done",
+      text: "Senior software engineer with 8 years of experience building distributed systems.",
+      searchText: "Senior software engineer with 8 years of experience building distributed systems.",
+    });
+
+    const res = await api(interviewerAuth).get(`/talent-pool?search=engineer`);
+    expect(res.status).toBe(200);
+    const found = res.body.data.find((p: { id: number }) => p.id === createdProfileId);
+    expect(found).toBeDefined();
+    expect(found.cvSnippet).toBeDefined();
+    expect(found.cvSnippet).toContain("[[engineer]]");
+
+    await db.delete(candidateProfileCvText).where(eq(candidateProfileCvText.profileId, createdProfileId));
   });
 
   it("fetches a single talent pool profile with submissions", async () => {

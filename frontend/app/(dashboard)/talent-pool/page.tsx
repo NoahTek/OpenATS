@@ -56,6 +56,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Spinner } from "@/components/ui/spinner";
+import { splitSnippet } from "../candidates/_lib/candidate-utils";
 import { BulkIngestModal } from "./_components/bulk-ingest-modal";
 import { TalentPoolCvSheet } from "./_components/talent-pool-cv-sheet";
 
@@ -384,11 +385,29 @@ export default function TalentPoolPage() {
                             </a>
                           )}
                         </div>
-                        {profile.notes && (
+                        {profile.cvSnippet ? (
+                          <p
+                            className="mt-0.5 max-w-md truncate text-xs font-normal text-slate-500 dark:text-neutral-400"
+                            title="Found in the CV"
+                          >
+                            {splitSnippet(profile.cvSnippet).map((part, index) =>
+                              part.match ? (
+                                <mark
+                                  key={index}
+                                  className="rounded-sm bg-amber-100 px-0.5 text-slate-900 dark:bg-amber-900/50 dark:text-neutral-100"
+                                >
+                                  {part.text}
+                                </mark>
+                              ) : (
+                                <span key={index}>{part.text}</span>
+                              ),
+                            )}
+                          </p>
+                        ) : profile.notes ? (
                           <p className="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
                             {profile.notes}
                           </p>
-                        )}
+                        ) : null}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
