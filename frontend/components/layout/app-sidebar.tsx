@@ -5,13 +5,13 @@ import {
   Home01Icon,
   BriefcaseBusinessIcon,
   Building02Icon,
-  FileUserIcon,
+  UserSearch01Icon,
   UserGroupIcon,
   Settings02Icon,
   Layout03Icon,
   Quiz03Icon,
-  TelegramIcon,
-  CoPresentIcon,
+  Agreement02Icon,
+  Calendar02Icon,
   SidebarLeftIcon,
   SidebarRight01Icon,
 } from "@hugeicons/core-free-icons";
@@ -49,19 +49,19 @@ const navMainData = [
     icon: BriefcaseBusinessIcon,
   },
   {
-    title: "Job Applications",
+    title: "Candidates",
     url: "/candidates",
-    icon: FileUserIcon,
+    icon: UserGroupIcon,
   },
   {
-    title: "Candidates",
+    title: "Talent Pool",
     url: "/talent-pool",
-    icon: UserGroupIcon,
+    icon: UserSearch01Icon,
   },
   {
     title: "Interviews",
     url: "/interviews",
-    icon: CoPresentIcon,
+    icon: Calendar02Icon,
   },
   {
     title: "Assessments",
@@ -71,7 +71,7 @@ const navMainData = [
   {
     title: "Manage Offers",
     url: "/offers",
-    icon: TelegramIcon,
+    icon: Agreement02Icon,
   },
   {
     title: "Templates",

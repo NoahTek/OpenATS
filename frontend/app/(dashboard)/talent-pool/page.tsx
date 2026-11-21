@@ -295,7 +295,7 @@ export default function TalentPoolPage() {
           <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-slate-300 py-6 dark:border-neutral-700">
             <div className="min-w-0">
               <h1 className="text-2xl font-medium leading-none text-slate-900 dark:text-neutral-100">
-                Candidates
+                Talent Pool
               </h1>
               <p className="mt-2 text-sm text-slate-600 dark:text-neutral-400">
                 Manage your agency&apos;s candidate bench, parse resumes with auto-fill, and submit candidates across client jobs.
