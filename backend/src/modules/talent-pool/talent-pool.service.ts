@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db";
 import {
   candidateProfiles,
@@ -15,6 +15,7 @@ import { requestCvExtraction } from "../../queues/cv-extract/queue";
 import { requestCvAnalysis } from "../../queues/cv-analysis/queue";
 import { normalizeForSearch } from "../candidate/cv-text/normalize-search";
 import { extractCvText, EXTRACTOR_VERSION } from "../candidate/cv-text";
+import { SNIPPET_MARK } from "../candidate/cv-text.service";
 import { r2Service } from "../../shared/services/r2.service";
 import logger from "../../utils/logger";
 import { cleanObject as clean } from "../../utils/object.utils";
@@ -137,8 +138,16 @@ export const talentPoolService = {
 
     const total = countRow?.count ?? 0;
 
+    const snippets = search?.trim()
+      ? await this.snippets(rows.map((r) => r.id), search)
+      : null;
+
+    const data = snippets
+      ? rows.map((row) => ({ ...row, cvSnippet: snippets.get(row.id) ?? null }))
+      : rows.map((row) => ({ ...row, cvSnippet: null }));
+
     return {
-      data: rows,
+      data,
       meta: {
         page,
         limit,
@@ -146,6 +155,66 @@ export const talentPoolService = {
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
+  },
+
+  /**
+   * The lines of each profile's CV that match the search, with the matched words marked.
+   * Checks direct candidate_profile_cv_text first, and falls back to linked candidate_cv_text.
+   */
+  async snippets(profileIds: number[], search: string): Promise<Map<number, string>> {
+    if (profileIds.length === 0 || !search.trim()) return new Map();
+
+    const options =
+      `StartSel="${SNIPPET_MARK.start}", StopSel="${SNIPPET_MARK.end}", ` +
+      `MaxFragments=2, MaxWords=18, MinWords=6, FragmentDelimiter=" ... "`;
+    const searchTsQuery = normalizeForSearch(search.trim());
+    const query = sql`websearch_to_tsquery('english', ${searchTsQuery})`;
+
+    // 1. Direct profile CV text
+    const profileRows = await db
+      .select({
+        profileId: candidateProfileCvText.profileId,
+        snippet: sql<string>`regexp_replace(
+          ts_headline('english', ${candidateProfileCvText.text}, ${query}, ${options}), '\\s+', ' ', 'g'
+        )`,
+      })
+      .from(candidateProfileCvText)
+      .where(
+        and(
+          inArray(candidateProfileCvText.profileId, profileIds),
+          sql`${candidateProfileCvText.searchVector} @@ ${query}`,
+        ),
+      );
+
+    const map = new Map<number, string>(profileRows.map((r) => [r.profileId, r.snippet]));
+
+    // 2. Fallback to linked candidate application CV text if missing
+    const missingProfileIds = profileIds.filter((id) => !map.has(id));
+    if (missingProfileIds.length > 0) {
+      const linkedRows = await db
+        .select({
+          profileId: candidates.candidateProfileId,
+          snippet: sql<string>`regexp_replace(
+            ts_headline('english', ${candidateCvText.text}, ${query}, ${options}), '\\s+', ' ', 'g'
+          )`,
+        })
+        .from(candidateCvText)
+        .innerJoin(candidates, eq(candidates.id, candidateCvText.candidateId))
+        .where(
+          and(
+            inArray(candidates.candidateProfileId, missingProfileIds),
+            sql`${candidateCvText.searchVector} @@ ${query}`,
+          ),
+        );
+
+      for (const row of linkedRows) {
+        if (row.profileId && !map.has(row.profileId)) {
+          map.set(row.profileId, row.snippet);
+        }
+      }
+    }
+
+    return map;
   },
 
   /**
