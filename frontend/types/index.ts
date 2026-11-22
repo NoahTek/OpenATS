@@ -152,6 +152,7 @@ export type TalentPoolProfile = {
 
 export type TalentPoolProfileDetail = TalentPoolProfile & {
   submissions: TalentPoolSubmission[];
+  cvText?: CandidateCvText | null;
 };
 
 export type Company = {

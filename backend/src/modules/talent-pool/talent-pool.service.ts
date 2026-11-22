@@ -317,9 +317,46 @@ export const talentPoolService = {
       .where(eq(candidates.candidateProfileId, id))
       .orderBy(desc(candidates.appliedAt));
 
+    // Fetch CV text if available
+    const [cvText] = await db
+      .select({
+        status: candidateProfileCvText.status,
+        method: candidateProfileCvText.method,
+        text: candidateProfileCvText.text,
+        pageCount: candidateProfileCvText.pageCount,
+        sections: candidateProfileCvText.sections,
+        experienceYears: candidateProfileCvText.experienceYears,
+        educationLevel: candidateProfileCvText.educationLevel,
+        contacts: candidateProfileCvText.contacts,
+      })
+      .from(candidateProfileCvText)
+      .where(eq(candidateProfileCvText.profileId, id))
+      .limit(1);
+
+    let profileCvText = cvText;
+    if (!profileCvText) {
+      const [linkedCvText] = await db
+        .select({
+          status: candidateCvText.status,
+          method: candidateCvText.method,
+          text: candidateCvText.text,
+          pageCount: candidateCvText.pageCount,
+          sections: candidateCvText.sections,
+          experienceYears: candidateCvText.experienceYears,
+          educationLevel: candidateCvText.educationLevel,
+          contacts: candidateCvText.contacts,
+        })
+        .from(candidateCvText)
+        .innerJoin(candidates, eq(candidates.id, candidateCvText.candidateId))
+        .where(eq(candidates.candidateProfileId, id))
+        .limit(1);
+      profileCvText = linkedCvText;
+    }
+
     return {
       ...profile,
       submissions,
+      cvText: profileCvText ?? null,
     };
   },
 
