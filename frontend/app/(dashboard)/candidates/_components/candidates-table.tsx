@@ -250,7 +250,7 @@ export function CandidatesTable({
               <TableHead className="h-11 px-6 font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
                 Applied on
               </TableHead>
-              <TableHead className="h-11 px-6 w-40 text-right font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
+              <TableHead className="h-11 px-6 w-28 text-center font-semibold text-slate-900 dark:text-neutral-100 text-[15px]">
                 Actions
               </TableHead>
             </TableRow>

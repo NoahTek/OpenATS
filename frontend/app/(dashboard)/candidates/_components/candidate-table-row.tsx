@@ -1,6 +1,8 @@
 "use client";
 
-import { RowDeleteButton, RowEditButton } from "@/components/table/row-actions";
+import { Button } from "@/components/ui/button";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Edit02Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BulkSelectRowCell } from "@/components/table/bulk-selection";
@@ -103,13 +105,29 @@ export function CandidateTableRow({
         {timeAgo(candidate.appliedAt)}
       </TableCell>
       <TableCell
-        className="h-12 px-6 py-0"
+        className="h-12 px-6 py-0 text-center"
         onClick={(e) => e.stopPropagation()}
       >
         {isManager && (
-          <div className="flex items-center justify-end gap-2">
-            <RowEditButton onClick={() => onEdit(candidate)} />
-            <RowDeleteButton onClick={() => onDelete(candidate)} />
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(candidate)}
+              className="h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+              title="Edit candidate"
+            >
+              <HugeiconsIcon icon={Edit02Icon} className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(candidate)}
+              className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+              title="Delete candidate"
+            >
+              <HugeiconsIcon icon={Delete02Icon} className="size-4" />
+            </Button>
           </div>
         )}
       </TableCell>

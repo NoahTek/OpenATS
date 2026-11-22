@@ -116,6 +116,19 @@ export type Client = {
   updatedAt: string;
 };
 
+export type TalentPoolSubmission = {
+  applicationId: number;
+  jobId: number;
+  jobTitle: string;
+  clientId: number | null;
+  clientName?: string | null;
+  status: string;
+  currentStageId: number | null;
+  stageName: string | null;
+  appliedAt: string;
+  totalScore: number | null;
+};
+
 export type TalentPoolProfile = {
   id: number;
   firstName: string;
@@ -134,20 +147,12 @@ export type TalentPoolProfile = {
    * between [[ and ]]. Null when the candidate was found by name or email only, or no search.
    */
   cvSnippet?: string | null;
+  submissions?: TalentPoolSubmission[];
 };
 
 export type TalentPoolProfileDetail = TalentPoolProfile & {
-  submissions: {
-    applicationId: number;
-    jobId: number;
-    jobTitle: string;
-    clientId: number | null;
-    status: string;
-    currentStageId: number | null;
-    stageName: string | null;
-    appliedAt: string;
-    totalScore: number | null;
-  }[];
+  submissions: TalentPoolSubmission[];
+  cvText?: CandidateCvText | null;
 };
 
 export type Company = {

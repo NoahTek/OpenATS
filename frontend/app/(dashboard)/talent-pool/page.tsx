@@ -47,18 +47,17 @@ import {
   Mail01Icon,
   CallIcon,
   Link01Icon,
-  BriefcaseBusinessIcon,
   FileUploadIcon,
   Cancel01Icon,
   Tick02Icon,
   FolderUploadIcon,
-  File01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Spinner } from "@/components/ui/spinner";
 import { splitSnippet } from "../candidates/_lib/candidate-utils";
 import { BulkIngestModal } from "./_components/bulk-ingest-modal";
 import { TalentPoolCvSheet } from "./_components/talent-pool-cv-sheet";
+import { TalentPoolSubmissionsPopover } from "./_components/talent-pool-submissions-popover";
 
 export default function TalentPoolPage() {
   const [search, setSearch] = useState("");
@@ -364,21 +363,31 @@ export default function TalentPoolPage() {
                     <TableHead>Candidate</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Source</TableHead>
-                    <TableHead>Submissions</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-center">Submissions</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {profiles.map((profile) => (
-                    <TableRow key={profile.id}>
+                    <TableRow
+                      key={profile.id}
+                      onClick={() => {
+                        setViewCvProfile(profile);
+                        setIsCvOpen(true);
+                      }}
+                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors"
+                    >
                       <TableCell className="font-medium text-slate-900 dark:text-neutral-100">
                         <div>
-                          {profile.firstName} {profile.lastName}
+                          <span className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors">
+                            {profile.firstName} {profile.lastName}
+                          </span>
                           {profile.linkedinUrl && (
                             <a
                               href={profile.linkedinUrl}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className="ml-2 inline-flex items-center text-xs text-blue-600 hover:underline"
                             >
                               <HugeiconsIcon icon={Link01Icon} className="size-3" />
@@ -428,57 +437,30 @@ export default function TalentPoolPage() {
                           {profile.source || "Direct Sourcing"}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800 dark:bg-neutral-800 dark:text-neutral-200">
-                          {profile.submissionCount} job{profile.submissionCount === 1 ? "" : "s"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {profile.hasResume ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setViewCvProfile(profile);
-                              setIsCvOpen(true);
-                            }}
-                            className="h-8 gap-1.5 text-xs text-slate-700 dark:text-neutral-300 hover:text-slate-900"
-                            title="View candidate CV"
-                          >
-                            <HugeiconsIcon icon={File01Icon} className="size-3.5" />
-                            View CV
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled
-                            className="h-8 gap-1.5 text-xs text-slate-400 opacity-60 cursor-not-allowed"
-                            title="No CV uploaded"
-                          >
-                            <HugeiconsIcon icon={File01Icon} className="size-3.5" />
-                            No CV
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSubmitProfile(profile);
+                      <TableCell
+                        className="text-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <TalentPoolSubmissionsPopover
+                          profile={profile}
+                          onSubmitToJob={(p) => {
+                            setSubmitProfile(p);
                             setSelectedClientId("all");
                             setSelectedJobId("");
                             setSubmissionNotes("");
                           }}
-                          className="h-8 gap-1.5 text-xs"
-                        >
-                          <HugeiconsIcon icon={BriefcaseBusinessIcon} className="size-3.5" />
-                          Submit to Job
-                        </Button>
+                        />
+                      </TableCell>
+                      <TableCell
+                        className="text-center space-x-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleOpenEdit(profile)}
-                          className="h-8 px-2"
+                          className="h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                          title="Edit candidate"
                         >
                           <HugeiconsIcon icon={Edit02Icon} className="size-4" />
                         </Button>
@@ -487,6 +469,7 @@ export default function TalentPoolPage() {
                           size="sm"
                           onClick={() => handleDeleteProfile(profile)}
                           className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                          title="Delete candidate"
                         >
                           <HugeiconsIcon icon={Delete02Icon} className="size-4" />
                         </Button>
@@ -887,6 +870,15 @@ export default function TalentPoolPage() {
         open={isCvOpen}
         onOpenChange={setIsCvOpen}
         profile={viewCvProfile}
+        onSubmitToJob={(p) => {
+          setSubmitProfile(p);
+          setSelectedClientId("all");
+          setSelectedJobId("");
+          setSubmissionNotes("");
+        }}
+        onEdit={(p) => {
+          handleOpenEdit(p);
+        }}
       />
     </div>
   );
