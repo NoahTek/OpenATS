@@ -5,6 +5,7 @@ import {
   candidateProfileCvText,
   candidateCvText,
   candidates,
+  clients,
   jobPipelineStages,
   jobs,
 } from "../../db/schema";
@@ -138,13 +139,76 @@ export const talentPoolService = {
 
     const total = countRow?.count ?? 0;
 
+    const profileIds = rows.map((r) => r.id);
+    const submissionsByProfile = new Map<
+      number,
+      Array<{
+        applicationId: number;
+        jobId: number;
+        jobTitle: string;
+        clientId: number | null;
+        clientName: string | null;
+        status: string;
+        currentStageId: number | null;
+        stageName: string | null;
+        appliedAt: Date | string;
+        totalScore: number | null;
+      }>
+    >();
+
+    if (profileIds.length > 0) {
+      const submissionRows = await db
+        .select({
+          applicationId: candidates.id,
+          profileId: candidates.candidateProfileId,
+          jobId: candidates.jobId,
+          jobTitle: jobs.title,
+          clientId: jobs.clientId,
+          clientName: clients.name,
+          status: candidates.status,
+          currentStageId: candidates.currentStageId,
+          stageName: jobPipelineStages.name,
+          appliedAt: candidates.appliedAt,
+          totalScore: candidates.totalScore,
+        })
+        .from(candidates)
+        .innerJoin(jobs, eq(candidates.jobId, jobs.id))
+        .leftJoin(clients, eq(jobs.clientId, clients.id))
+        .leftJoin(
+          jobPipelineStages,
+          eq(candidates.currentStageId, jobPipelineStages.id),
+        )
+        .where(inArray(candidates.candidateProfileId, profileIds))
+        .orderBy(desc(candidates.appliedAt));
+
+      for (const sub of submissionRows) {
+        if (!sub.profileId) continue;
+        const list = submissionsByProfile.get(sub.profileId) ?? [];
+        list.push({
+          applicationId: sub.applicationId,
+          jobId: sub.jobId,
+          jobTitle: sub.jobTitle,
+          clientId: sub.clientId,
+          clientName: sub.clientName,
+          status: sub.status,
+          currentStageId: sub.currentStageId,
+          stageName: sub.stageName,
+          appliedAt: sub.appliedAt,
+          totalScore: sub.totalScore,
+        });
+        submissionsByProfile.set(sub.profileId, list);
+      }
+    }
+
     const snippets = search?.trim()
       ? await this.snippets(rows.map((r) => r.id), search)
       : null;
 
-    const data = snippets
-      ? rows.map((row) => ({ ...row, cvSnippet: snippets.get(row.id) ?? null }))
-      : rows.map((row) => ({ ...row, cvSnippet: null }));
+    const data = rows.map((row) => ({
+      ...row,
+      submissions: submissionsByProfile.get(row.id) ?? [],
+      cvSnippet: snippets ? snippets.get(row.id) ?? null : null,
+    }));
 
     return {
       data,
@@ -236,6 +300,7 @@ export const talentPoolService = {
         jobId: candidates.jobId,
         jobTitle: jobs.title,
         clientId: jobs.clientId,
+        clientName: clients.name,
         status: candidates.status,
         currentStageId: candidates.currentStageId,
         stageName: jobPipelineStages.name,
@@ -244,6 +309,7 @@ export const talentPoolService = {
       })
       .from(candidates)
       .innerJoin(jobs, eq(candidates.jobId, jobs.id))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
       .leftJoin(
         jobPipelineStages,
         eq(candidates.currentStageId, jobPipelineStages.id),

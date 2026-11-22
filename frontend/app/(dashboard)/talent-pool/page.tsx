@@ -47,7 +47,6 @@ import {
   Mail01Icon,
   CallIcon,
   Link01Icon,
-  BriefcaseBusinessIcon,
   FileUploadIcon,
   Cancel01Icon,
   Tick02Icon,
@@ -59,6 +58,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { splitSnippet } from "../candidates/_lib/candidate-utils";
 import { BulkIngestModal } from "./_components/bulk-ingest-modal";
 import { TalentPoolCvSheet } from "./_components/talent-pool-cv-sheet";
+import { TalentPoolSubmissionsPopover } from "./_components/talent-pool-submissions-popover";
 
 export default function TalentPoolPage() {
   const [search, setSearch] = useState("");
@@ -364,8 +364,8 @@ export default function TalentPoolPage() {
                     <TableHead>Candidate</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Source</TableHead>
-                    <TableHead>Submissions</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-center">Submissions</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -428,12 +428,18 @@ export default function TalentPoolPage() {
                           {profile.source || "Direct Sourcing"}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800 dark:bg-neutral-800 dark:text-neutral-200">
-                          {profile.submissionCount} job{profile.submissionCount === 1 ? "" : "s"}
-                        </span>
+                      <TableCell className="text-center">
+                        <TalentPoolSubmissionsPopover
+                          profile={profile}
+                          onSubmitToJob={(p) => {
+                            setSubmitProfile(p);
+                            setSelectedClientId("all");
+                            setSelectedJobId("");
+                            setSubmissionNotes("");
+                          }}
+                        />
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
+                      <TableCell className="text-center space-x-2">
                         {profile.hasResume ? (
                           <Button
                             variant="outline"
@@ -460,20 +466,6 @@ export default function TalentPoolPage() {
                             No CV
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSubmitProfile(profile);
-                            setSelectedClientId("all");
-                            setSelectedJobId("");
-                            setSubmissionNotes("");
-                          }}
-                          className="h-8 gap-1.5 text-xs"
-                        >
-                          <HugeiconsIcon icon={BriefcaseBusinessIcon} className="size-3.5" />
-                          Submit to Job
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
